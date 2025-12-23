@@ -1,0 +1,2 @@
+﻿opened_at,resolved_at,service,severity,title,description
+2025-12-04T12:30:00+03:00,2025-12-04T13:15:00+03:00,checkout,SEV2,Errors after deploy,500s in SBP flow

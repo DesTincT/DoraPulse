@@ -1,0 +1,15 @@
+﻿node_modules/
+dist/
+build/
+coverage/
+.env
+.env.local
+.DS_Store
+npm-debug.log*
+yarn-error.log*
+.tmp/
+.cache/
+.vercel/
+.next/
+.vscode/
+.cursor/

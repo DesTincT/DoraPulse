@@ -1,0 +1,11 @@
+﻿{
+  "action": "completed",
+  "workflow_run": {
+    "name": "deploy-prod",
+    "conclusion": "failure",
+    "head_branch": "main",
+    "head_sha": "def999",
+    "updated_at": "2025-12-04T12:10:00+03:00"
+  },
+  "repository": { "full_name": "acme/checkout" }
+}
