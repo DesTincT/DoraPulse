@@ -15,3 +15,9 @@ yarn-error.log*
 .cursor/
 
 prod.env
+
+deploy.ps1
+
+*.zip
+
+helpers.txt
