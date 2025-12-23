@@ -3,6 +3,9 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
 import { EventModel } from '../models/Event.js';
 import { RepoModel } from '../models/Repo.js';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { isProdEnvironment, fromDeploymentStatus } from '../services/githubNormalizer.js';
 
 export default async function adminDev(app: FastifyInstance) {
   // Вставить одно тестовое событие (deploy_succeeded) с валидным repoId
@@ -55,5 +58,29 @@ export default async function adminDev(app: FastifyInstance) {
       .select('ts type projectId repoId branch env meta bodyPreview')
       .lean();
     return reply.send({ total, last });
+  });
+
+  // Dev check: normalize deployment_status fixtures (no DB writes)
+  app.get('/admin/dev/normalize-deployment-status', async (_req: FastifyRequest, reply: FastifyReply) => {
+    const project = {
+      settings: {
+        prodEnvironments: ['production', 'prod', 'Yandex Cloud'],
+      },
+    };
+    const base = path.resolve(process.cwd(), 'fixtures');
+    const okPayload = JSON.parse(readFileSync(path.join(base, 'deployment_status_success.json'), 'utf8'));
+    const failPayload = JSON.parse(readFileSync(path.join(base, 'deployment_status_failure.json'), 'utf8'));
+    const ok = fromDeploymentStatus(okPayload, project);
+    const fail = fromDeploymentStatus(failPayload, project);
+    const checks = {
+      isProdCaseInsensitive: isProdEnvironment('yAnDeX cLoUd', project),
+      okCount: ok.length,
+      failCount: fail.length,
+      okType: ok[0]?.type,
+      failType: fail[0]?.type,
+      okMetaSample: ok[0]?.meta,
+      failMetaSample: fail[0]?.meta,
+    };
+    return reply.send({ ok: true, checks });
   });
 }

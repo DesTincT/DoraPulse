@@ -5,6 +5,7 @@ import { RepoModel } from '../models/Repo.js';
 import { EventModel } from '../models/Event.js';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { config } from '../config.js';
+import { fromDeploymentStatus } from '../services/githubNormalizer.js';
 
 export default async function githubWebhook(app: FastifyInstance) {
   app.post('/webhooks/github', async (req, reply) => {
@@ -30,6 +31,7 @@ export default async function githubWebhook(app: FastifyInstance) {
       if (!project) return reply.code(404).send({ ok: false, error: 'project not found' });
 
       const payload = req.body as any;
+      const ghEventHeader = String((req.headers['x-github-event'] ?? req.headers['X-GitHub-Event'] ?? '') as string);
       const delivery = String((req.headers['x-github-delivery'] ?? '') as string);
 
       // 2) repoId по repository.full_name
@@ -44,6 +46,20 @@ export default async function githubWebhook(app: FastifyInstance) {
       // 3) Нормализация payload (фикстуры БЕЗ заголовка X-GitHub-Event → определяем по форме)
       const events: any[] = [];
       const now = new Date();
+
+      // 3.1) deployment_status (source of truth for prod deploys)
+      if (ghEventHeader.toLowerCase() === 'deployment_status') {
+        const norm = fromDeploymentStatus(payload, project) || [];
+        for (const ev of norm) {
+          const e: any = {
+            ts: new Date(ev.ts || now),
+            type: ev.type,
+            meta: ev.meta || {},
+          };
+          if (ev.dedupKey) e.dedupKey = ev.dedupKey;
+          events.push(e);
+        }
+      }
 
       if (payload.pull_request) {
         const pr = payload.pull_request;

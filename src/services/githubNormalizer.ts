@@ -19,6 +19,7 @@ interface NormalizedEvent {
     prCreatedAt?: number;
     [k: string]: any;
   };
+  dedupKey?: string;
 }
 
 function pickPrAndRepo(payload: any): PrRepoMeta {
@@ -132,4 +133,56 @@ function fromPush(payload: any, project: any): NormalizedEvent[] {
 }
 
 export type { NormalizedEvent };
-export { fromPullRequest, fromWorkflowRun, fromPush };
+
+function isProdEnvironment(name: string | undefined, project: any): boolean {
+  if (!name || typeof name !== 'string') return false;
+  const defaults = ['production', 'prod', 'yandex cloud'];
+  const custom: string[] | undefined = project?.settings?.prodEnvironments;
+  const list = Array.isArray(custom) && custom.length ? custom : defaults;
+  const n = name.toLowerCase();
+  return list.some((x) => String(x).toLowerCase() === n);
+}
+
+function fromDeploymentStatus(payload: any, project: any): NormalizedEvent[] {
+  const events: NormalizedEvent[] = [];
+  const dep = payload?.deployment;
+  const status = payload?.deployment_status;
+  const repoFullName: string | undefined = payload?.repository?.full_name;
+  if (!dep || !status) return events;
+
+  const envName: string | undefined = dep.environment;
+  if (!isProdEnvironment(envName, project)) return events;
+
+  const state: string = String(status.state || '').toLowerCase();
+  if (!['success', 'failure', 'error'].includes(state)) return events;
+  const type: NormalizedEvent['type'] = state === 'success' ? 'deploy_succeeded' : 'deploy_failed';
+
+  const createdAt: string | undefined = status.created_at || status.updated_at || status.createdAt || status.updatedAt;
+  const ts = createdAt ? new Date(createdAt).getTime() : Date.now();
+
+  const bestUrl =
+    status.target_url ||
+    status.environment_url ||
+    status.log_url ||
+    status.html_url ||
+    (status.targetUrl || status.environmentUrl || status.logUrl || undefined);
+
+  const ev: NormalizedEvent = {
+    type,
+    ts,
+    meta: {
+      env: 'prod',
+      sha: dep.sha,
+      repoFullName,
+      deploymentEnvironment: envName,
+      deploymentId: dep.id,
+      statusId: status.id,
+      url: bestUrl,
+    },
+    dedupKey: status.id ? `gh:deployment_status:${status.id}` : dep.id && createdAt ? `gh:deployment:${dep.id}:${state}:${createdAt}` : undefined,
+  };
+  events.push(ev);
+  return events;
+}
+
+export { fromPullRequest, fromWorkflowRun, fromPush, fromDeploymentStatus, isProdEnvironment };
