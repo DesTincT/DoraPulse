@@ -1,0 +1,15 @@
+﻿{
+  "action": "closed",
+  "number": 542,
+  "pull_request": {
+    "merged": true,
+    "title": "feat(checkout): save cards in profile",
+    "body": "PROJ-129 Save cards; adds endpoint /v1/cards",
+    "labels": [{ "name": "feature" }],
+    "base": { "ref": "main" },
+    "created_at": "2025-12-01T10:12:00+03:00",
+    "merged_at": "2025-12-03T14:20:00+03:00"
+  },
+  "repository": { "full_name": "acme/checkout" },
+  "sender": { "login": "dev1" }
+}
