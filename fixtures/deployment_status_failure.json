@@ -1,0 +1,18 @@
+{
+  "deployment": {
+    "id": 22334455,
+    "sha": "ffffeeee111122223333",
+    "environment": "Yandex Cloud"
+  },
+  "deployment_status": {
+    "id": 55667788,
+    "state": "failure",
+    "created_at": "2025-12-22T13:00:00Z",
+    "log_url": "https://deployments.example.com/run/456/logs"
+  },
+  "repository": {
+    "full_name": "acme/checkout"
+  }
+}
+
+
