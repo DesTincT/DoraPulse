@@ -16,13 +16,14 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
     .lean();
 
   const byType = events.reduce((m: any, e: any) => ((m[e.type] = (m[e.type] || 0) + 1), m), {});
-  const deploys = events.filter((e) => e.type === 'deploy_succeeded' || e.type === 'deploy_failed');
-  const successes = deploys.filter((e) => e.type === 'deploy_succeeded');
-  const fails = deploys.filter((e) => e.type === 'deploy_failed');
+  const deploysAll = events.filter((e) => e.type === 'deploy_succeeded' || e.type === 'deploy_failed');
+  const prodDeploysAll = deploysAll.filter((e: any) => (e?.meta?.env || e?.env) === 'prod');
+  const successes = prodDeploysAll.filter((e) => e.type === 'deploy_succeeded');
+  const fails = prodDeploysAll.filter((e) => e.type === 'deploy_failed');
 
   // 2) DF / CFR
   const dfCount = successes.length;
-  const cfrDen = deploys.length;
+  const cfrDen = prodDeploysAll.length;
   const cfrNum = fails.length;
   const cfrVal = cfrDen ? cfrNum / cfrDen : 0;
 
@@ -84,7 +85,7 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
   const prCtP90 = prCtSamples.length ? percentile(prCtSamples, 90) / 1000 : 0;
 
   // 5) DORA Lead Time for Changes (commit -> prod deploy)
-  const prodDeploySuccess = successes.filter((e: any) => e.env === 'prod');
+  const prodDeploySuccess = successes;
   const prodDeploys = prodDeploySuccess.length;
   let prodDeploysWithSha = 0;
   const ltSamples: number[] = [];
