@@ -11,6 +11,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: "Yandex Cloud"
     # defaults:
      #  run:
         # working-directory: ./api
