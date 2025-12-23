@@ -50,14 +50,18 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Verify zip exists
+        run: |
+          ls -la dora-dist.zip
+
       - name: Upload zip to VM
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          source: "/dora-dist.zip"
+          port: 22
+          source: "dora-dist.zip"
           target: "/tmp"
           overwrite: true
 
