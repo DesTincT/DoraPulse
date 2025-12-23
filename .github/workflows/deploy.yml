@@ -12,9 +12,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: "Yandex Cloud"
-    # defaults:
-     #  run:
-        # working-directory: ./api
+
+    permissions:
+      contents: read
+      deployments: write
 
     steps:
       - name: Checkout
@@ -65,6 +66,15 @@ jobs:
           target: "/tmp"
           overwrite: true
 
+      # 1) Создать deployment в environment=production
+      - name: Create deployment
+        id: deployment
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: production
+          ref: ${{ github.sha }}
+      
       - name: Deploy on VM (unzip + rebuild + restart)
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -88,3 +98,22 @@ jobs:
 
             # sanity-check: убедимся, что новый код реально внутри контейнера
             docker compose exec api sh -lc 'node -p "require(\"fs\").statSync(\"dist/index.js\").mtime.toISOString()"'
+            
+      # 3) Пометить статус success
+      - name: Mark deployment success
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: success
+          environment-url: https://130.193.45.27.sslip.io
+          
+      # 4) На fail пометить failure/error
+      - name: Mark deployment failure
+        if: failure()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+        state: failure
