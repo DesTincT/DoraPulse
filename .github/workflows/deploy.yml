@@ -116,4 +116,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           deployment-id: ${{ steps.deployment.outputs.deployment_id }}
-        state: failure
+          state: failure
