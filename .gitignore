@@ -13,3 +13,5 @@ yarn-error.log*
 .next/
 .vscode/
 .cursor/
+
+prod.env
