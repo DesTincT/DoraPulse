@@ -49,6 +49,17 @@ export default async function githubWebhook(app: FastifyInstance) {
 
       // 3.1) deployment_status (source of truth for prod deploys)
       if (ghEventHeader.toLowerCase() === 'deployment_status') {
+        try {
+          const envName = String(payload?.deployment?.environment || '');
+          const state = String(payload?.deployment_status?.state || '');
+          const sha = String(payload?.deployment?.sha || '');
+          const deploymentId = payload?.deployment?.id;
+          const statusId = payload?.deployment_status?.id;
+          app.log.info(
+            { envName, state, sha, deploymentId, statusId, projectId: String(project._id) },
+            'webhook: deployment_status received',
+          );
+        } catch {}
         const norm = fromDeploymentStatus(payload, project) || [];
         for (const ev of norm) {
           const e: any = {
@@ -56,6 +67,8 @@ export default async function githubWebhook(app: FastifyInstance) {
             type: ev.type,
             meta: ev.meta || {},
           };
+          // canonical env on top-level for easier querying
+          if ((ev.meta as any)?.env === 'prod') e.env = 'prod';
           if (ev.dedupKey) e.dedupKey = ev.dedupKey;
           events.push(e);
         }
