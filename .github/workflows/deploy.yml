@@ -104,7 +104,7 @@ jobs:
         if: success()
         uses: chrnorm/deployment-status@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
           deployment-id: ${{ steps.deployment.outputs.deployment_id }}
           state: success
           environment-url: https://130.193.45.27.sslip.io
@@ -114,6 +114,6 @@ jobs:
         if: failure()
         uses: chrnorm/deployment-status@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
           deployment-id: ${{ steps.deployment.outputs.deployment_id }}
           state: failure
