@@ -32,6 +32,7 @@ export default async function githubWebhook(app: FastifyInstance) {
 
       const payload = req.body as any;
       const ghEventHeader = String((req.headers['x-github-event'] ?? req.headers['X-GitHub-Event'] ?? '') as string);
+      const ghEvent = ghEventHeader.toLowerCase();
       const delivery = String((req.headers['x-github-delivery'] ?? '') as string);
 
       // 2) repoId по repository.full_name
@@ -47,8 +48,13 @@ export default async function githubWebhook(app: FastifyInstance) {
       const events: any[] = [];
       const now = new Date();
 
+      // 3.0) deployment (ignore gracefully, we use deployment_status only)
+      if (ghEvent === 'deployment') {
+        return reply.send({ ok: true, ignored: true });
+      }
+
       // 3.1) deployment_status (source of truth for prod deploys)
-      if (ghEventHeader.toLowerCase() === 'deployment_status') {
+      if (ghEvent === 'deployment_status' || (payload?.deployment && payload?.deployment_status)) {
         try {
           const envName = String(payload?.deployment?.environment || '');
           const state = String(payload?.deployment_status?.state || '');
