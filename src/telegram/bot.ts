@@ -193,6 +193,16 @@ export function initBotPolling() {
     else week = parsed;
 
     const data = await fetchWeekly(String(p._id), week);
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        console.log('[bot:/metrics]', {
+          week,
+          df: data?.df?.count ?? 0,
+          cfrDen: data?.cfr?.denominator ?? 0,
+          ltSamples: data?.leadTime?.samples ?? 0,
+        });
+      } catch {}
+    }
     await ctx.reply(fmtWeekly(data));
   }
 
