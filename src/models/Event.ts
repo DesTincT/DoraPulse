@@ -1,6 +1,6 @@
 import mongoose, { Schema, Types, Document, Model } from 'mongoose';
 
-interface Event extends Document {
+export interface Event extends Document {
   ts: Date;
   source: 'github' | 'manual';
   type:

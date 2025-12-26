@@ -46,7 +46,7 @@ async function fetchWeekly(projectId: string, week = WEEK_DEFAULT) {
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -218,8 +218,8 @@ export function initBotPolling() {
   bot.hears(/🗓\s*Digest/i, handleDigest);
   bot.hears(/📝\s*Pulse/i, handlePulse);
 
-  bot.catch((err, ctx) => {
-    console.error('Telegraf error', err, 'on update', ctx.update);
+  bot.catch((_, ctx) => {
+    console.error('Telegraf error on update', ctx.update);
   });
 
   // Запуск

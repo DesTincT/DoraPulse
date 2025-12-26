@@ -5,16 +5,17 @@ import { isoWeekRange, percentile } from '../utils.js';
 import { CommitCacheModel } from '../models/CommitCache.js';
 import { fetchCommitCommittedAt } from './githubApi.js';
 import { ProjectModel } from '../models/Project.js';
+import type { Event as EventDoc } from '../models/Event.js';
 
 export async function getWeekly(projectId: Types.ObjectId | string, week: string) {
   const pid = typeof projectId === 'string' ? new Types.ObjectId(projectId) : projectId;
   const [from, to] = isoWeekRange(week);
 
   // 1) забираем все события недели по проекту
-  const events = await EventModel.find({ projectId: pid, ts: { $gte: from, $lt: to } })
+  const events = (await EventModel.find({ projectId: pid, ts: { $gte: from, $lt: to } })
     .select('ts type repoId branch prId env meta')
     .sort({ ts: 1 })
-    .lean();
+    .lean()) as Pick<EventDoc, 'ts' | 'type' | 'env' | 'meta' | 'prId' | 'branch'>[];
 
   const byType = events.reduce((m: any, e: any) => ((m[e.type] = (m[e.type] || 0) + 1), m), {});
   const deploysAll = events.filter((e) => e.type === 'deploy_succeeded' || e.type === 'deploy_failed');

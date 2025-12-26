@@ -29,7 +29,8 @@ export function percentile(arr: number[], p: number) {
   if (!arr.length) return 0;
   const a = [...arr].sort((x, y) => x - y);
   const idx = Math.floor((p / 100) * (a.length - 1));
-  return a[idx];
+  // eslint-disable-next-line security/detect-object-injection
+  return a[idx] ?? 0;
 }
 
 /**

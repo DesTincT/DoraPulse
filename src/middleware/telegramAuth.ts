@@ -1,33 +1,48 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { createHmac, createHash } from 'crypto';
+import { createHmac, createHash, timingSafeEqual } from 'crypto';
 import { ProjectModel } from '../models/Project.js';
 import { config } from '../config.js';
 
-function parseInitData(raw?: string): Record<string, string> | null {
+interface TelegramInitData {
+  query_id?: string;
+  user?: string;
+  chat?: string;
+  auth_date?: string;
+  hash?: string;
+  [k: string]: string | undefined;
+}
+
+function parseInitData(raw?: string): TelegramInitData | null {
   if (!raw || typeof raw !== 'string') return null;
-  const out: Record<string, string> = {};
-  for (const part of raw.split('&')) {
-    const [k, v] = part.split('=');
-    if (!k) continue;
-    out[k] = decodeURIComponent(v || '');
+  const params = new URLSearchParams(raw);
+  const out: TelegramInitData = {};
+  const allowed = ['query_id', 'user', 'chat', 'auth_date', 'hash'] as const;
+  for (const key of allowed) {
+    const v = params.get(key);
+    // eslint-disable-next-line security/detect-object-injection
+    if (v != null) (out as Record<string, string>)[key] = v;
   }
   return out;
 }
 
-function validateTelegramInitData(raw?: string): { ok: boolean; data?: any } {
+function validateTelegramInitData(raw?: string): { ok: boolean; data?: TelegramInitData } {
   try {
     const parsed = parseInitData(raw);
     if (!parsed) return { ok: false };
     const hash = parsed['hash'] || '';
-    const data = { ...parsed };
-    delete (data as any)['hash'];
-    const pairs = Object.keys(data)
-      .sort()
-      .map((k) => `${k}=${data[k]}`);
+    const keys: (keyof TelegramInitData)[] = ['auth_date', 'chat', 'query_id', 'user'];
+    const pairs: string[] = [];
+    for (const k of keys) {
+      // eslint-disable-next-line security/detect-object-injection
+      const v = parsed[k];
+      if (typeof v === 'string') pairs.push(`${k}=${v}`);
+    }
     const dataCheckString = pairs.join('\n');
     const secret = createHash('sha256').update(config.botToken).digest();
     const hmac = createHmac('sha256', secret).update(dataCheckString).digest('hex');
-    if (hmac !== hash) return { ok: false };
+    const left = Buffer.from(hmac, 'hex');
+    const right = Buffer.from(hash, 'hex');
+    if (left.length !== right.length || !timingSafeEqual(left, right)) return { ok: false };
     return { ok: true, data: parsed };
   } catch {
     return { ok: false };
@@ -47,7 +62,7 @@ export async function telegramAuth(req: FastifyRequest, reply: FastifyReply) {
   const chatId: number | undefined = chatJson?.id ?? (v.data?.user ? JSON.parse(v.data.user)?.id : undefined);
   if (!chatId) return reply.code(400).send({ ok: false, error: 'chat id missing' });
 
-  let project = await ProjectModel.findOne({ chatId }).lean();
+  let project = await ProjectModel.findOne({ chatId });
   if (!project) {
     const created = await new ProjectModel({
       name: `project-${chatId}`,
@@ -55,7 +70,7 @@ export async function telegramAuth(req: FastifyRequest, reply: FastifyReply) {
       accessKey: Math.random().toString(36).slice(2, 11),
       settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
     } as any).save();
-    project = await ProjectModel.findById((created as any)._id).lean();
+    project = created;
   }
 
   (req as any).project = project;
