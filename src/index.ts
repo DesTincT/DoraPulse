@@ -28,8 +28,14 @@ export async function buildServer() {
 
   await fastify.register(cors, {
     origin: (origin, cb) => {
-      if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin)) cb(null, true);
-      else cb(new Error('Not allowed by CORS'), false);
+      try {
+        if (!origin) return cb(null, true);
+        const u = new URL(origin);
+        if (u.hostname === 'localhost') return cb(null, true);
+        return cb(new Error('Not allowed by CORS'), false);
+      } catch {
+        return cb(new Error('Not allowed by CORS'), false);
+      }
     },
   });
 
