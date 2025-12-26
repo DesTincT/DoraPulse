@@ -165,7 +165,10 @@ function fromDeploymentStatus(payload: any, project: any): NormalizedEvent[] {
     status.environment_url ||
     status.log_url ||
     status.html_url ||
-    (status.targetUrl || status.environmentUrl || status.logUrl || undefined);
+    status.targetUrl ||
+    status.environmentUrl ||
+    status.logUrl ||
+    undefined;
 
   const ev: NormalizedEvent = {
     type,
@@ -179,7 +182,11 @@ function fromDeploymentStatus(payload: any, project: any): NormalizedEvent[] {
       statusId: status.id,
       url: bestUrl,
     },
-    dedupKey: status.id ? `gh:deployment_status:${status.id}` : dep.id && createdAt ? `gh:deployment:${dep.id}:${state}:${createdAt}` : undefined,
+    dedupKey: status.id
+      ? `gh:deployment_status:${status.id}`
+      : dep.id && createdAt
+        ? `gh:deployment:${dep.id}:${state}:${createdAt}`
+        : undefined,
   };
   events.push(ev);
   return events;

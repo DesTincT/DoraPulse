@@ -78,7 +78,7 @@ export function hasAnyData(m: any): boolean {
 }
 
 export function fmtWeekly(m: any) {
-  if (!hasAnyData(m)) return 'Данных пока нет 🤷‍♂️';
+  if (!hasAnyData(m)) return 'No data yet 🤷‍♂️';
 
   const df = m?.df?.count ?? 0;
   const cfrVal = m?.cfr?.value;

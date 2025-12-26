@@ -8,15 +8,16 @@ import { config } from '../config.js';
 import { fromDeploymentStatus } from '../services/githubNormalizer.js';
 
 export default async function githubWebhook(app: FastifyInstance) {
-
   app.post('/webhooks/github', async (req, reply) => {
-
-    app.log.info({
-      ghEvent: req.headers['x-github-event'],
-      contentType: req.headers['content-type'],
-      hasDeployment: !!(req.body as any)?.deployment,
-      hasDeploymentStatus: !!(req.body as any)?.deployment_status,
-    }, 'github webhook received');
+    app.log.info(
+      {
+        ghEvent: req.headers['x-github-event'],
+        contentType: req.headers['content-type'],
+        hasDeployment: !!(req.body as any)?.deployment,
+        hasDeploymentStatus: !!(req.body as any)?.deployment_status,
+      },
+      'github webhook received',
+    );
 
     try {
       // Validate GitHub signature if enabled

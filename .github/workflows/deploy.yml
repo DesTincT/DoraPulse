@@ -2,7 +2,7 @@ name: Deploy API to VM
 
 on:
   push:
-    branches: ["main"]   # срабатывает после merge PR (merge -> push в main)
+    branches: ['main'] # срабатывает после merge PR (merge -> push в main)
 
 concurrency:
   group: deploy-main
@@ -11,7 +11,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: "Yandex Cloud"
+    environment: 'Yandex Cloud'
 
     permissions:
       contents: read
@@ -26,7 +26,6 @@ jobs:
           pwd
           ls -la
           find . -maxdepth 3 -type d -print
-
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -62,8 +61,8 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
-          source: "dora-dist.zip"
-          target: "/tmp"
+          source: 'dora-dist.zip'
+          target: '/tmp'
           overwrite: true
 
       # 1) Создать deployment в environment=production
@@ -74,7 +73,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           environment: production
           ref: ${{ github.sha }}
-      
+
       - name: Deploy on VM (unzip + rebuild + restart)
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -98,7 +97,7 @@ jobs:
 
             # sanity-check: убедимся, что новый код реально внутри контейнера
             docker compose exec api sh -lc 'node -p "require(\"fs\").statSync(\"dist/index.js\").mtime.toISOString()"'
-            
+
       # 3) Пометить статус success
       - name: Mark deployment success
         if: always() && steps.deployment.outputs.deployment_id != '' && job.status == 'success'
@@ -107,10 +106,10 @@ jobs:
           token: ${{ github.token }}
           deployment-id: ${{ steps.deployment.outputs.deployment_id }}
           state: success
-          environment: "Yandex Cloud"
+          environment: 'Yandex Cloud'
           environment-url: ${{ secrets.PUBLIC_APP_URL }}
           auto-inactive: true
-          
+
       # 4) На fail пометить failure/error
       - name: Mark deployment failure
         if: always() && steps.deployment.outputs.deployment_id != '' && job.status == 'failure'
@@ -119,5 +118,5 @@ jobs:
           token: ${{ github.token }}
           deployment-id: ${{ steps.deployment.outputs.deployment_id }}
           state: failure
-          environment: "Yandex Cloud"
+          environment: 'Yandex Cloud'
           auto-inactive: true

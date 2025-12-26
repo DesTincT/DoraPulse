@@ -21,5 +21,3 @@ CommitCacheSchema.index({ repoFullName: 1, sha: 1 }, { unique: true });
 
 export const CommitCacheModel: Model<CommitCache> =
   mongoose.models.CommitCache || mongoose.model<CommitCache>('CommitCache', CommitCacheSchema);
-
-
