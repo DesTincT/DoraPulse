@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import { initBotPolling } from './telegram/bot.js';
 import metricsRoutes from './routes/metrics.js';
 import githubWebhook from './routes/webhooks.github.js';
+import githubAppWebhook from './routes/webhooks.github.app.js';
 import incidentsRoutes from './routes/incidents.js';
 import pulseRoutes from './routes/pulse.js';
 
@@ -45,6 +46,7 @@ export async function buildServer() {
 
   // Регистрация роутов
   await fastify.register(githubWebhook);
+  await fastify.register(githubAppWebhook);
   await fastify.register(metricsRoutes);
   await fastify.register(incidentsRoutes as any);
   await fastify.register(pulseRoutes as any);
