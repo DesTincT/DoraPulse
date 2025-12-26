@@ -2,8 +2,8 @@ import { Types } from 'mongoose';
 import { EventModel } from '../models/Event.js';
 import { IncidentModel } from '../models/Incident.js';
 import { isoWeekRange, percentile } from '../utils.js';
-import { CommitModel } from '../models/Commit.js';
-import { config } from '../config.js';
+import { CommitCacheModel } from '../models/CommitCache.js';
+import { fetchCommitCommittedAt } from './githubApi.js';
 
 export async function getWeekly(projectId: Types.ObjectId | string, week: string) {
   const pid = typeof projectId === 'string' ? new Types.ObjectId(projectId) : projectId;
@@ -94,35 +94,17 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
 
   async function resolveCommitTs(repoFullName: string | undefined, sha: any): Promise<number | null> {
     if (!repoFullName || !sha || typeof sha !== 'string') return null;
-    const cached = await CommitModel.findOne({ projectId: pid, repoFullName, sha }).lean();
-    if (cached?.ts) return +new Date(cached.ts as any);
-    // fetch from GitHub
-    try {
-      const url = `https://api.github.com/repos/${repoFullName}/commits/${encodeURIComponent(sha)}`;
-      const headers: Record<string, string> = { 'User-Agent': 'dora-pulse' };
-      if (config.githubToken) headers.Authorization = `Bearer ${config.githubToken}`;
-      const res = await fetch(url, { headers } as any);
-      if (!res.ok) return null;
-      const json: any = await res.json();
-      const dateStr =
-        json?.commit?.committer?.date ||
-        json?.commit?.author?.date ||
-        (json?.commit && json.committer?.date) ||
-        undefined;
-      if (!dateStr) return null;
-      const tsNum = +new Date(dateStr);
-      if (Number.isFinite(tsNum)) {
-        await CommitModel.updateOne(
-          { projectId: pid, repoFullName, sha },
-          { $set: { ts: new Date(tsNum) } },
-          { upsert: true },
-        );
-        return tsNum;
-      }
-      return null;
-    } catch {
-      return null;
-    }
+    const cached = await CommitCacheModel.findOne({ repoFullName, sha }).lean();
+    if (cached?.committedAt) return +new Date(cached.committedAt as any);
+    // fetch from GitHub (prefer author date, fallback committer)
+    const committedAt = await fetchCommitCommittedAt(repoFullName, sha);
+    if (!committedAt) return null;
+    await CommitCacheModel.updateOne(
+      { repoFullName, sha },
+      { $set: { committedAt, fetchedAt: new Date() } },
+      { upsert: true },
+    );
+    return +committedAt;
   }
 
   let processedShas = 0;
@@ -147,13 +129,13 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
     if (processedShas >= MAX_SHAS) break;
   }
 
-  const doraLt =
-    ltSamples.length > 0
-      ? {
-          p50: percentile(ltSamples, 50) / 1000,
-          p90: percentile(ltSamples, 90) / 1000,
-        }
-      : null;
+  const ltSamplesSec = ltSamples.map((ms) => ms / 1000);
+  const doraLt = {
+    p50: ltSamplesSec.length ? percentile(ltSamplesSec, 50) : 0,
+    p90: ltSamplesSec.length ? percentile(ltSamplesSec, 90) : 0,
+    unit: 'sec',
+    samples: ltSamplesSec.length,
+  };
 
   // 6) Если совсем пусто — вернем структуру с нулями (не {}), плюс debug
   const result = {
@@ -176,6 +158,8 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
       deployCountsByType: { succeeded: successes.length, failed: fails.length },
       deploysProd: prodDeploys,
       deploysProdWithSha: prodDeploysWithSha,
+      commitsResolved: resolvedCount,
+      leadTimeSamples: ltSamplesSec.length,
       prMergesCount: mergedEvents.length,
     },
   };
