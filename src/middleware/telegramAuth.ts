@@ -49,16 +49,14 @@ export async function telegramAuth(req: FastifyRequest, reply: FastifyReply) {
 
   let project = await ProjectModel.findOne({ chatId }).lean();
   if (!project) {
-    // Create a minimal project on the fly
-    project = await ProjectModel.create({
+    const created = await new ProjectModel({
       name: `project-${chatId}`,
       chatId,
       accessKey: Math.random().toString(36).slice(2, 11),
       settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
-    } as any).then((x) => x.toObject());
+    } as any).save();
+    project = await ProjectModel.findById((created as any)._id).lean();
   }
 
   (req as any).project = project;
 }
-
-
