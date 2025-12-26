@@ -4,6 +4,7 @@ import { IncidentModel } from '../models/Incident.js';
 import { isoWeekRange, percentile } from '../utils.js';
 import { CommitCacheModel } from '../models/CommitCache.js';
 import { fetchCommitCommittedAt } from './githubApi.js';
+import { ProjectModel } from '../models/Project.js';
 
 export async function getWeekly(projectId: Types.ObjectId | string, week: string) {
   const pid = typeof projectId === 'string' ? new Types.ObjectId(projectId) : projectId;
@@ -17,7 +18,17 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
 
   const byType = events.reduce((m: any, e: any) => ((m[e.type] = (m[e.type] || 0) + 1), m), {});
   const deploysAll = events.filter((e) => e.type === 'deploy_succeeded' || e.type === 'deploy_failed');
-  const prodDeploysAll = deploysAll.filter((e: any) => (e?.meta?.env || e?.env) === 'prod');
+  // Selected production environments (names) from project settings
+  const project = await ProjectModel.findById(pid).select('settings').lean();
+  const selectedProd = (project?.settings as any)?.prodEnvironments || [];
+  const selectedLower = Array.isArray(selectedProd) ? selectedProd.map((x: any) => String(x).toLowerCase()) : [];
+  const isSelectedProd = (e: any) => {
+    const envCanonical = (e?.meta?.env || e?.env) === 'prod';
+    const depEnv = typeof e?.meta?.deploymentEnvironment === 'string' ? e.meta.deploymentEnvironment.toLowerCase() : '';
+    const matchesSelected = selectedLower.length ? selectedLower.includes(depEnv) : false;
+    return envCanonical || matchesSelected;
+  };
+  const prodDeploysAll = deploysAll.filter(isSelectedProd);
   const successes = prodDeploysAll.filter((e) => e.type === 'deploy_succeeded');
   const fails = prodDeploysAll.filter((e) => e.type === 'deploy_failed');
 

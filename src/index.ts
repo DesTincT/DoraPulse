@@ -50,6 +50,13 @@ export async function buildServer() {
   await fastify.register(metricsRoutes);
   await fastify.register(incidentsRoutes as any);
   await fastify.register(pulseRoutes as any);
+  try {
+    const mod = await import('./routes/webapp.js');
+    if (mod?.default && typeof mod.default === 'function') {
+      await fastify.register(mod.default);
+      fastify.log.info({ routeFile: 'webapp' }, 'route registered');
+    }
+  } catch {}
   await import('./cron/jobs.js');
 
   // Админ/дебаг — только вне production

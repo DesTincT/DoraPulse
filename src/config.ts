@@ -23,6 +23,7 @@ const configSchema = z.object({
   PUBLIC_APP_URL: z.string().url('PUBLIC_APP_URL must be a valid URL'),
   PAK_SALT: z.string().min(1, 'PAK_SALT is required'),
   TIMEZONE: z.string().min(1, 'TIMEZONE is required'),
+  GITHUB_APP_SLUG: z.string().optional(),
   GITHUB_API_TOKEN: z.string().optional(),
   GITHUB_TOKEN: z.string().optional(),
 });
@@ -37,6 +38,7 @@ const parsedEnv = configSchema.safeParse({
   PUBLIC_APP_URL: process.env.PUBLIC_APP_URL,
   PAK_SALT: process.env.PAK_SALT,
   TIMEZONE: process.env.TIMEZONE,
+  GITHUB_APP_SLUG: process.env.GITHUB_APP_SLUG,
   GITHUB_API_TOKEN: process.env.GITHUB_API_TOKEN,
   GITHUB_TOKEN: process.env.GITHUB_TOKEN,
 });
@@ -55,6 +57,7 @@ export const config = {
   publicAppUrl: parsedEnv.data.PUBLIC_APP_URL,
   pakSalt: parsedEnv.data.PAK_SALT,
   timezone: parsedEnv.data.TIMEZONE,
+  githubAppSlug: parsedEnv.data.GITHUB_APP_SLUG,
   githubApiToken: parsedEnv.data.GITHUB_API_TOKEN,
   githubToken: parsedEnv.data.GITHUB_TOKEN,
 };
