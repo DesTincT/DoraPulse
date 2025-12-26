@@ -68,22 +68,40 @@ export function fmtDuration(sec?: number) {
   return m ? `${h}ч ${m}м` : `${h}ч`;
 }
 
+export function hasAnyData(m: any): boolean {
+  if (!m || typeof m !== 'object') return false;
+  const totalEvents = Number(m?.debug?.totalEvents ?? 0);
+  const dfCount = Number(m?.df?.count ?? 0);
+  const cfrDen = Number(m?.cfr?.denominator ?? 0);
+  const deploysProd = Number(m?.debug?.deploysProd ?? 0);
+  return totalEvents > 0 || dfCount > 0 || cfrDen > 0 || deploysProd > 0;
+}
+
 export function fmtWeekly(m: any) {
-  if (!m) return 'Данных пока нет 🤷‍♂️';
+  if (!hasAnyData(m)) return 'Данных пока нет 🤷‍♂️';
+
   const df = m?.df?.count ?? 0;
+  const cfrVal = m?.cfr?.value;
+  const cfr = cfrVal != null ? `${(cfrVal * 100).toFixed(1)}%` : '—';
+
+  // PR Cycle Time (show — when zeros)
   const prCt50 = fmtDuration(m?.prCycleTime?.p50);
   const prCt90 = fmtDuration(m?.prCycleTime?.p90);
-  const doraLt50 = m?.leadTime ? fmtDuration(m?.leadTime?.p50) : 'N/A';
-  const doraLt90 = m?.leadTime ? fmtDuration(m?.leadTime?.p90) : 'N/A';
-  const cfr = m?.cfr?.value != null ? `${(m.cfr.value * 100).toFixed(1)}%` : '—';
+
+  // DORA Lead Time for Changes (show — when no samples)
+  const ltSamples = Number(m?.leadTime?.samples ?? 0);
+  const doraLt50 = ltSamples > 0 ? fmtDuration(m?.leadTime?.p50) : '—';
+  const doraLt90 = ltSamples > 0 ? fmtDuration(m?.leadTime?.p90) : '—';
+
   const mttr = fmtDuration(m?.mttr?.p50);
+
   return [
-    `📅 Неделя: ${m.week}`,
+    `📅 Неделя: ${m?.week ?? '—'}`,
     `🚀 Deployment Frequency: ${df}`,
-    `🔁 PR Cycle Time p50/p90: ${prCt50} / ${prCt90}`,
-    `⏱️ Lead Time for Changes p50/p90: ${doraLt50} / ${doraLt90}`,
-    `🧯 MTTR p50: ${mttr}`,
     `🔁 CFR: ${cfr}`,
+    `⏱️ Lead Time for Changes p50/p90: ${doraLt50} / ${doraLt90}`,
+    `🔁 PR Cycle Time p50/p90: ${prCt50} / ${prCt90}`,
+    `🧯 MTTR p50: ${mttr}`,
   ].join('\n');
 }
 
