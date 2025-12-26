@@ -8,11 +8,17 @@ interface ProjectSettings {
   ltBaseline: 'pr_open' | 'first_commit';
 }
 
+interface ProjectGithub {
+  installationId?: number;
+  repos?: string[];
+}
+
 export interface Project extends Document {
   name: string;
   chatId: number;
   accessKey: string;
   settings: ProjectSettings;
+  github?: ProjectGithub;
 }
 
 const ProjectSchema = new Schema<Project>(
@@ -30,6 +36,10 @@ const ProjectSchema = new Schema<Project>(
         enum: ['pr_open', 'first_commit'],
         required: true,
       },
+    },
+    github: {
+      installationId: { type: Number, required: false },
+      repos: { type: [String], required: false, default: undefined },
     },
   },
   {
