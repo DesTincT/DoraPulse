@@ -21,7 +21,4 @@ const CommitSchema = new Schema<Commit>(
 
 CommitSchema.index({ projectId: 1, repoFullName: 1, sha: 1 }, { unique: true });
 
-export const CommitModel: Model<Commit> =
-  mongoose.models.Commit || mongoose.model<Commit>('Commit', CommitSchema);
-
-
+export const CommitModel: Model<Commit> = mongoose.models.Commit || mongoose.model<Commit>('Commit', CommitSchema);

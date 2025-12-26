@@ -15,6 +15,7 @@ This service now distinguishes between PR Cycle Time (a PR-centered proxy) and t
 ### Coverage
 
 `coverage.leadTime` clarifies sample availability:
+
 ```json
 {
   "prodDeploys": 3,
@@ -28,6 +29,7 @@ If `prodDeploysWithSha` is 0, expect `leadTime: null`.
 ### Telegram/Formatting
 
 Weekly text shows:
+
 - PR Cycle Time p50/p90 from PRs
 - DORA Lead Time p50/p90 or “N/A — need prod deploy SHA linkage”
 
@@ -35,5 +37,3 @@ Weekly text shows:
 
 - Production deploy events must carry `meta.env = "prod"` and `meta.sha` (or `meta.shas`) plus `meta.repoFullName`.
 - Commit timestamps are fetched from GitHub (`GET /repos/{owner}/{repo}/commits/{sha}`) and cached in Mongo (`Commit` collection) to avoid repeated lookups.
-
-

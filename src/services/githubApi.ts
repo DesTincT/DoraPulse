@@ -20,5 +20,3 @@ export async function fetchCommitCommittedAt(repoFullName: string, sha: string):
     return null;
   }
 }
-
-

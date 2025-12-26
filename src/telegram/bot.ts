@@ -5,6 +5,7 @@ import { ProjectModel } from '../models/Project.js';
 import { RepoModel } from '../models/Repo.js';
 import { randomBytes } from 'crypto';
 import { fmtWeekly, currentIsoWeek } from '../utils.js';
+import { uiText } from './uiText.js';
 
 const WEEK_DEFAULT = '2025-W49'; // можно динамически, но для демо — фикс
 const isHttps = (u?: string) => !!u && /^https:\/\//i.test(u);
@@ -30,10 +31,10 @@ function parseWeekArg(text?: string) {
 }
 
 function mainMenu(webAppUrl?: string) {
-  const row1 = [Markup.button.text('📊 Метрики'), Markup.button.text('🗓 Дайджест')];
-  const row2 = [Markup.button.text('📝 Pulse')];
+  const row1 = [Markup.button.text(uiText.menu.metrics), Markup.button.text(uiText.menu.digest)];
+  const row2 = [Markup.button.text(uiText.menu.pulse)];
   if (isHttps(webAppUrl)) {
-    return Markup.keyboard([row1, row2, [Markup.button.webApp('🌐 Открыть Mini-App', webAppUrl!)]]).resize();
+    return Markup.keyboard([row1, row2, [Markup.button.webApp(uiText.menu.openMiniApp, webAppUrl!)]]).resize();
   }
   return Markup.keyboard([row1, row2]).resize();
 }
@@ -57,22 +58,21 @@ export function initBotPolling() {
   }
   const bot = new Telegraf(config.botToken);
 
-  // Команды в меню Telegram
+  // Commands menu
   bot.telegram
     .setMyCommands([
-      { command: 'start', description: 'Запуск и привязка проекта' },
-      { command: 'help', description: 'Справка' },
-      { command: 'link', description: 'Инструкция по GitHub Webhook' },
-      { command: 'metrics', description: 'Показать метрики за неделю' },
-      { command: 'digest', description: 'Отправить еженедельный дайджест' },
-      { command: 'pulse', description: 'Pulse-опрос (DevEx)' },
-      { command: 'webapp', description: 'Открыть Mini-App' },
+      { command: 'start', description: 'Start and link a project' },
+      { command: 'help', description: 'Help' },
+      { command: 'link', description: 'GitHub webhook instructions' },
+      { command: 'metrics', description: 'Show metrics for a week' },
+      { command: 'digest', description: 'Send weekly digest' },
+      { command: 'pulse', description: 'DevEx survey' },
+      { command: 'webapp', description: 'Open Mini‑App' },
     ])
     .catch(() => {});
 
-  // /start — регистрируем/находим проект и показываем меню
+  // /start — find/create project and show menu
   bot.start(async (ctx) => {
-    // ищем проект по chatId, если нет — создаём простейший
     let project = await ProjectModel.findOne({ chatId: ctx.chat.id });
     if (!project) {
       const accessKey = randomBytes(9).toString('base64url');
@@ -85,7 +85,6 @@ export function initBotPolling() {
         accessKey,
         settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
       });
-      // базовый репозиторий для демо
       await RepoModel.findOneAndUpdate(
         { projectId: project._id, owner: 'acme', name: 'checkout' },
         { $setOnInsert: { defaultBranch: 'main' } },
@@ -93,49 +92,33 @@ export function initBotPolling() {
       );
     }
 
-    const webAppUrl = process.env.MINIAPP_URL || `${config.publicAppUrl}/webapp`; // поменяй при деплое
-    await ctx.reply(
-      [
-        '👋 Привет! Я DORA Pulse бот.',
-        'Готов принимать события из GitHub и показывать сводки.',
-        '',
-        `projectId: ${project._id}`,
-        `PAK (accessKey): ${project.accessKey}`,
-      ].join('\n'),
-      mainMenu(webAppUrl),
-    );
+    const webAppUrl = process.env.MINIAPP_URL || `${config.publicAppUrl}/webapp`;
+    const startLines = [
+      ...uiText.startIntroLines,
+      ...uiText.startProjectInfo(String(project._id), project.accessKey),
+      ...uiText.startWebhookInfo(config.publicAppUrl, project.accessKey, config.webhookSecret || 'devsecret (local)'),
+    ].join('\n');
+    await ctx.reply(startLines, mainMenu(webAppUrl));
   });
 
   // /help
   bot.command('help', async (ctx) => {
-    await ctx.reply(
-      [
-        'Доступные команды:',
-        '/link — инструкция по вебхуку GitHub',
-        '/metrics — метрики за неделю',
-        '/digest — отправить недельный дайджест',
-        '/pulse — DevEx-опрос',
-        '/webapp — открыть Mini-App',
-      ].join('\n'),
-    );
+    await ctx.reply(uiText.helpLines.join('\n'));
   });
 
-  // /link — как настроить GitHub Webhook
+  // /link — GitHub Webhook instruction
   bot.command('link', async (ctx) => {
     const p = await ProjectModel.findOne({ chatId: ctx.chat.id }).lean();
-    if (!p) return ctx.reply('Сначала /start, чтобы создать проект.');
-    await ctx.reply(
-      [
-        '🔗 Подключение GitHub Webhook:',
-        `Payload URL: ${config.publicAppUrl}/webhooks/github?projectKey=${p.accessKey}`,
-        `Secret: ${config.webhookSecret || 'devsecret (локально)'}`,
-        'Events: Pull requests, Pushes, Workflow runs',
-        'Content type: application/json',
-      ].join('\n'),
+    if (!p) return ctx.reply(uiText.mustStartFirst);
+    const lines = uiText.startWebhookInfo(
+      config.publicAppUrl,
+      p.accessKey,
+      config.webhookSecret || 'devsecret (local)',
     );
+    await ctx.reply(['🔗 GitHub Webhook:', ...lines.slice(1)].join('\n'));
   });
 
-  // обработчик ответа Pulse
+  // Pulse callback handler
   bot.on('callback_query', async (ctx) => {
     const cq: any = ctx.callbackQuery as any;
     const data: string = typeof cq?.data === 'string' ? cq.data : '';
@@ -144,7 +127,7 @@ export function initBotPolling() {
     const score = Number(scoreStr);
     const p = await ProjectModel.findOne({ chatId: ctx?.chat?.id }).lean();
     if (!p) {
-      await ctx.answerCbQuery('Сначала /start');
+      await ctx.answerCbQuery(uiText.mustStartFirst);
       return;
     }
     // отправим на API (если эндпоинт есть) — иначе молча игнорим ошибку
@@ -160,36 +143,32 @@ export function initBotPolling() {
         }),
       });
     } catch {}
-    await ctx.answerCbQuery(`Спасибо! Ваша оценка: ${score}`);
-    await ctx.editMessageText(`📝 Pulse (неделя ${week})\nОтвет получен: ${score}/5 ✅`);
+    await ctx.answerCbQuery('Thanks!');
+    await ctx.editMessageText(uiText.pulseThanks(week, score));
   });
 
-  // /webapp — кнопка открыть Mini-App (если есть URL)
+  // /webapp — open Mini‑App button (if URL exists)
   bot.command('webapp', async (ctx) => {
     const webAppUrl = process.env.MINIAPP_URL || `${config.publicAppUrl}/webapp`;
     if (isHttps(webAppUrl)) {
       await ctx.reply(
-        'Откройте Mini-App:',
-        Markup.keyboard([[Markup.button.webApp('🌐 Открыть Mini-App', webAppUrl)]]).resize(),
+        uiText.openMiniAppLabel,
+        Markup.keyboard([[Markup.button.webApp(uiText.menu.openMiniApp, webAppUrl)]]).resize(),
       );
     } else {
-      await ctx.reply(
-        'Для WebApp-кнопки нужен HTTPS.\n' +
-          `Временно открой ссылку: ${webAppUrl}\n\n` +
-          'Или подними ngrok: ngrok http 8080 и выставь MINIAPP_URL=https://<ngrok>/webapp',
-      );
+      await ctx.reply(`${uiText.webappNeedsHttps}\n${webAppUrl}`);
     }
   });
 
   async function handleMetrics(ctx: any) {
     const p = await ProjectModel.findOne({ chatId: ctx.chat.id }).lean();
-    if (!p) return ctx.reply('Сначала /start.');
+    if (!p) return ctx.reply(uiText.mustStartFirst);
 
     const parsed = parseWeekArg(ctx.message?.text);
 
     let week: string;
     if (!parsed) week = currentIsoWeek() || WEEK_DEFAULT;
-    else if (parsed === 'INVALID') return ctx.reply('Формат: /metrics или /metrics 2025-W51');
+    else if (parsed === 'INVALID') return ctx.reply(uiText.invalidWeekFormat);
     else week = parsed;
 
     const data = await fetchWeekly(String(p._id), week);
@@ -209,14 +188,14 @@ export function initBotPolling() {
 
   async function handleDigest(ctx: any) {
     const p = await ProjectModel.findOne({ chatId: ctx.chat.id }).lean();
-    if (!p) return ctx.reply('Сначала /start.');
+    if (!p) return ctx.reply(uiText.mustStartFirst);
     const week = currentIsoWeek() || WEEK_DEFAULT;
     const data = await fetchWeekly(String(p._id), week);
     const text = [
-      '📊 *DORA Pulse — недельный дайджест*',
+      uiText.weeklyDigestTitle,
       fmtWeekly(data),
       '',
-      'ℹ️ Это демо-дайджест. Полная сводка будет включать динамику и аномалии.',
+      'ℹ️ This is a demo digest. The full version will include trends and anomalies.',
     ].join('\n');
     await ctx.replyWithMarkdown(text);
   }
@@ -229,14 +208,14 @@ export function initBotPolling() {
     );
   }
 
-  // Команды
+  // Commands
   bot.command('metrics', handleMetrics);
   bot.command('digest', handleDigest);
   bot.command('pulse', handlePulse);
 
-  // Кнопки (hears)
-  bot.hears(/📊\s*Метрики/i, handleMetrics);
-  bot.hears(/🗓\s*Дайджест/i, handleDigest);
+  // Buttons (hears)
+  bot.hears(/📊\s*Metrics/i, handleMetrics);
+  bot.hears(/🗓\s*Digest/i, handleDigest);
   bot.hears(/📝\s*Pulse/i, handlePulse);
 
   bot.catch((err, ctx) => {
