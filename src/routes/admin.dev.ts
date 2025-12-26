@@ -6,6 +6,8 @@ import { RepoModel } from '../models/Repo.js';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { isProdEnvironment, fromDeploymentStatus } from '../services/githubNormalizer.js';
+import { fetchCommitCommittedAt } from '../services/githubApi.js';
+import { CommitCacheModel } from '../models/CommitCache.js';
 
 export default async function adminDev(app: FastifyInstance) {
   // Вставить одно тестовое событие (deploy_succeeded) с валидным repoId
@@ -82,5 +84,22 @@ export default async function adminDev(app: FastifyInstance) {
       failMetaSample: fail[0]?.meta,
     };
     return reply.send({ ok: true, checks });
+  });
+
+  // Dev: resolve a commit ts and cache it
+  app.get('/admin/dev/commit-ts', async (req: FastifyRequest, reply: FastifyReply) => {
+    const q: any = req.query || {};
+    const repoFullName = String(q.repoFullName || q.full_name || '');
+    const sha = String(q.sha || '');
+    if (!repoFullName || !sha) return reply.code(400).send({ ok: false, error: 'repoFullName and sha required' });
+    const d = await fetchCommitCommittedAt(repoFullName, sha);
+    if (d) {
+      await CommitCacheModel.updateOne(
+        { repoFullName, sha },
+        { $set: { committedAt: d, fetchedAt: new Date() } },
+        { upsert: true },
+      );
+    }
+    return reply.send({ ok: true, repoFullName, sha, committedAt: d ?? null });
   });
 }
