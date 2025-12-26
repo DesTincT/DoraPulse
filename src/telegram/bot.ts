@@ -195,11 +195,12 @@ export function initBotPolling() {
     const data = await fetchWeekly(String(p._id), week);
     if (process.env.NODE_ENV !== 'production') {
       try {
+        const d: any = data || {};
         console.log('[bot:/metrics]', {
           week,
-          df: data?.df?.count ?? 0,
-          cfrDen: data?.cfr?.denominator ?? 0,
-          ltSamples: data?.leadTime?.samples ?? 0,
+          df: d?.df?.count ?? 0,
+          cfrDen: d?.cfr?.denominator ?? 0,
+          ltSamples: d?.leadTime?.samples ?? 0,
         });
       } catch {}
     }
