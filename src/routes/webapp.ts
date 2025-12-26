@@ -6,110 +6,20 @@ import { ProjectModel } from '../models/Project.js';
 import { EventModel } from '../models/Event.js';
 import { getWeekly } from '../services/metricsService.js';
 import { getLastIsoWeek } from '../utils.js';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
 
 export default async function webappRoutes(app: FastifyInstance) {
-  // Serve a lightweight React Mini App via CDN (Tailwind + DaisyUI)
+  // Serve /webapp as static folder
+  const webappRoot = path.resolve(process.cwd(), 'webapp');
+  await app.register(fastifyStatic, {
+    root: webappRoot,
+    prefix: '/webapp/',
+    decorateReply: false,
+  });
   app.get('/webapp', async (_req, reply) => {
-    const html = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <title>Dora Pulse</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
-  </head>
-  <body class="bg-base-200">
-    <div id="app" class="container mx-auto p-4"></div>
-    <script type="module">
-      import React, { useEffect, useState } from 'https://esm.sh/react@18';
-      import ReactDOM from 'https://esm.sh/react-dom@18/client';
-
-      const tg = window.Telegram?.WebApp;
-      const initData = tg?.initData || '';
-
-      function TabButton({active, onClick, children}) {
-        return React.createElement('button', { className: 'btn ' + (active ? 'btn-primary' : ''), onClick }, children);
-      }
-
-      function App() {
-        const [tab, setTab] = useState('connect');
-        const [me, setMe] = useState(null);
-        const [verify, setVerify] = useState(null);
-        const [envs, setEnvs] = useState({ seenEnvs: [], selected: [] });
-
-        async function api(path, opts={}) {
-          const res = await fetch(path, {
-            ...opts,
-            headers: { 'content-type': 'application/json', 'x-telegram-init-data': initData }
-          });
-          return await res.json();
-        }
-
-        useEffect(() => {
-          api('/api/me').then(setMe).catch(()=>{});
-        }, []);
-
-        const connect = React.createElement('div', { className: 'card bg-base-100 shadow p-4' },
-          React.createElement('h2', { className: 'card-title' }, 'Connect GitHub App'),
-          React.createElement('p', null, me?.github?.installationId ? 'Installed ✓' : 'Not installed'),
-          React.createElement('div', { className: 'mt-2' },
-            React.createElement('a', { className: 'btn btn-primary', href: me?.githubInstallUrl, target: '_blank' }, 'Install GitHub App')
-          )
-        );
-
-        const verifyView = React.createElement('div', { className: 'card bg-base-100 shadow p-4' },
-          React.createElement('h2', { className: 'card-title' }, 'Self-Test'),
-          React.createElement('p', null, verify ? JSON.stringify(verify) : 'Run self-test to verify events and metrics.'),
-          React.createElement('button', { className: 'btn mt-2', onClick: () => { api('/api/selftest', { method: 'POST' }).then((r) => setVerify(r)).catch(() => {}); } }, 'Run self-test'),
-        );
-
-        const envView = React.createElement('div', { className: 'card bg-base-100 shadow p-4' },
-          React.createElement('h2', { className: 'card-title' }, 'Production Environments'),
-          React.createElement('div', { className: 'mt-2 flex flex-wrap gap-2' },
-            ...(envs?.seenEnvs || []).map(env =>
-              React.createElement('label', { className: 'label cursor-pointer gap-2', key: env },
-                React.createElement('input', {
-                  type: 'checkbox',
-                  className: 'checkbox',
-                  checked: envs.selected?.includes(env),
-                  onChange: (e) => {
-                    const sel = new Set(envs.selected || []);
-                    if (e.target.checked) sel.add(env); else sel.delete(env);
-                    setEnvs({ ...envs, selected: Array.from(sel) });
-                  }
-                }),
-                React.createElement('span', { className: 'label-text' }, env)
-              )
-            )
-          ),
-          React.createElement('div', { className: 'mt-3 flex gap-2' },
-            React.createElement('button', { className: 'btn', onClick: () => {
-              api('/api/envs').then((r) => setEnvs(r)).catch(() => {});
-            } }, 'Reload'),
-            React.createElement('button', { className: 'btn btn-primary', onClick: () => {
-              void api('/api/envs', { method: 'POST', body: JSON.stringify({ selected: envs.selected || [] }) });
-            } }, 'Save')
-          )
-        );
-
-        const tabs = React.createElement('div', { className: 'tabs tabs-boxed mb-4' },
-          React.createElement('a', { className: 'tab ' + (tab==='connect'?'tab-active':''), onClick:()=>setTab('connect') }, 'Connect'),
-          React.createElement('a', { className: 'tab ' + (tab==='verify'?'tab-active':''), onClick:()=>setTab('verify') }, 'Verify'),
-          React.createElement('a', { className: 'tab ' + (tab==='env'?'tab-active':''), onClick:()=>setTab('env') }, 'Env'),
-        );
-
-        const body = tab==='connect' ? connect : tab==='verify' ? verifyView : envView;
-        return React.createElement('div', null, tabs, body);
-      }
-
-      const root = ReactDOM.createRoot(document.getElementById('app'));
-      root.render(React.createElement(App));
-    </script>
-  </body>
-</html>`;
-    reply.header('content-type', 'text/html; charset=utf-8').send(html);
+    reply.header('content-type', 'text/html; charset=utf-8');
+    return reply.sendFile('index.html');
   });
 
   // Telegram-authenticated API
