@@ -21,10 +21,23 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
   const successes = prodDeploysAll.filter((e) => e.type === 'deploy_succeeded');
   const fails = prodDeploysAll.filter((e) => e.type === 'deploy_failed');
 
-  // 2) DF / CFR
-  const dfCount = successes.length;
-  const cfrDen = prodDeploysAll.length;
-  const cfrNum = fails.length;
+  // 2) DF / CFR — count by distinct deploymentId (prod only)
+  function deploymentKey(e: any): string {
+    const env = (e?.meta?.env || e?.env) ?? '';
+    const repoFullName = e?.meta?.repoFullName ?? '';
+    const sha = e?.meta?.sha ?? '';
+    const type = e?.type ?? '';
+    const id = e?.meta?.deploymentId ?? e?.meta?.statusId ?? null;
+    return id != null ? `id:${id}` : `${repoFullName}:${sha}:${env}:${type}`;
+  }
+  const succKeys = new Set<string>();
+  for (const e of successes) succKeys.add(deploymentKey(e));
+  const failKeys = new Set<string>();
+  for (const e of fails) failKeys.add(deploymentKey(e));
+  const allKeys = new Set<string>([...succKeys, ...failKeys]);
+  const dfCount = succKeys.size;
+  const cfrDen = allKeys.size;
+  const cfrNum = failKeys.size;
   const cfrVal = cfrDen ? cfrNum / cfrDen : 0;
 
   // 3) MTTR (если импортированы инциденты)
@@ -158,6 +171,9 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
       deployCountsByType: { succeeded: successes.length, failed: fails.length },
       deploysProd: prodDeploys,
       deploysProdWithSha: prodDeploysWithSha,
+      distinctDeploymentsSucceeded: succKeys.size,
+      distinctDeploymentsFailed: failKeys.size,
+      distinctDeploymentsTotal: allKeys.size,
       commitsResolved: resolvedCount,
       leadTimeSamples: ltSamplesSec.length,
       prMergesCount: mergedEvents.length,
