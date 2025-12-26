@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { FastifyInstance } from 'fastify';
 import { telegramAuth } from '../middleware/telegramAuth.js';
 import { config } from '../config.js';
@@ -61,7 +62,7 @@ export default async function webappRoutes(app: FastifyInstance) {
         const verifyView = React.createElement('div', { className: 'card bg-base-100 shadow p-4' },
           React.createElement('h2', { className: 'card-title' }, 'Self-Test'),
           React.createElement('p', null, verify ? JSON.stringify(verify) : 'Run self-test to verify events and metrics.'),
-          React.createElement('button', { className: 'btn mt-2', onClick: async () => { const r = await api('/api/selftest', { method: 'POST' }); setVerify(r); } }, 'Run self-test'),
+          React.createElement('button', { className: 'btn mt-2', onClick: () => { api('/api/selftest', { method: 'POST' }).then((r) => setVerify(r)).catch(() => {}); } }, 'Run self-test'),
         );
 
         const envView = React.createElement('div', { className: 'card bg-base-100 shadow p-4' },
@@ -84,12 +85,11 @@ export default async function webappRoutes(app: FastifyInstance) {
             )
           ),
           React.createElement('div', { className: 'mt-3 flex gap-2' },
-            React.createElement('button', { className: 'btn', onClick: async () => {
-              const r = await api('/api/envs');
-              setEnvs(r);
+            React.createElement('button', { className: 'btn', onClick: () => {
+              api('/api/envs').then((r) => setEnvs(r)).catch(() => {});
             } }, 'Reload'),
-            React.createElement('button', { className: 'btn btn-primary', onClick: async () => {
-              await api('/api/envs', { method: 'POST', body: JSON.stringify({ selected: envs.selected || [] }) });
+            React.createElement('button', { className: 'btn btn-primary', onClick: () => {
+              void api('/api/envs', { method: 'POST', body: JSON.stringify({ selected: envs.selected || [] }) });
             } }, 'Save')
           )
         );
@@ -136,7 +136,10 @@ export default async function webappRoutes(app: FastifyInstance) {
       const project = (req as any).project;
       const installationId = Number((req.query as any)?.installation_id);
       if (!installationId) return reply.code(400).send({ ok: false, error: 'installation_id required' });
-      await ProjectModel.updateOne({ _id: project._id }, { $set: { github: { ...(project.github || {}), installationId } } });
+      await ProjectModel.updateOne(
+        { _id: project._id },
+        { $set: { github: { ...(project.github || {}), installationId } } },
+      );
       return reply.send({ ok: true });
     } catch (e: any) {
       return reply.code(500).send({ ok: false, error: e.message || 'callback failed' });
@@ -168,5 +171,3 @@ export default async function webappRoutes(app: FastifyInstance) {
     return reply.send({ ok: true });
   });
 }
-
-

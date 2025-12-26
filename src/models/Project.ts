@@ -37,7 +37,7 @@ const ProjectSchema = new Schema<Project>(
         enum: ['pr_open', 'first_commit'],
         required: true,
       },
-    prodEnvironments: { type: [String], required: false, default: undefined },
+      prodEnvironments: { type: [String], required: false, default: undefined },
     },
     github: {
       installationId: { type: Number, required: false },
