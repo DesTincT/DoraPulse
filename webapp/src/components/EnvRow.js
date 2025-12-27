@@ -1,0 +1,55 @@
+import React, { useState, useEffect } from 'https://esm.sh/react@18';
+import { ListRow } from '/webapp/src/components/ListRow.js';
+import { InlineMessage } from '/webapp/src/components/InlineMessage.js';
+
+export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved }) {
+  const [local, setLocal] = useState(envText || '');
+  useEffect(() => setLocal(envText || ''), [envText]);
+
+  const input = React.createElement('input', {
+    className: 'input input-bordered w-full',
+    placeholder: 'production',
+    value: local,
+    onChange: (e) => setLocal(e.target.value),
+  });
+  const hint = React.createElement(
+    'div',
+    { className: 'text-xs text-base-content/60 mt-1' },
+    'Example: production, Yandex Cloud',
+  );
+  const body = React.createElement(React.Fragment, null, input, hint);
+  const button = React.createElement(
+    'button',
+    {
+      className:
+        'btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50',
+      onClick: async () => {
+        // push local text up, then save
+        setEnvText(local);
+        await onSave();
+      },
+      disabled: saving,
+    },
+    saving ? 'Saving…' : 'Save',
+  );
+  const right = React.createElement(
+    React.Fragment,
+    null,
+    button,
+  );
+  const footer = recentlySaved
+    ? React.createElement(InlineMessage, { type: 'success' }, 'Saved')
+    : null;
+  return React.createElement(
+    ListRow,
+    {
+      title: 'Production environments',
+      subtitle: 'Comma-separated values used to count production deployments.',
+      right,
+      last: true,
+    },
+    React.createElement(React.Fragment, null, body, footer),
+  );
+}
+
+

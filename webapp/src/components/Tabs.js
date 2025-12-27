@@ -1,3 +1,4 @@
+import React from 'https://esm.sh/react@18';
 export function Tabs({ value, onChange }) {
   const mk = (id, label) =>
     React.createElement(

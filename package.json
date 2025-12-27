@@ -5,10 +5,11 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "node scripts/dev-run.mjs",
     "start": "node --env-file=.env --enable-source-maps dist/index.js",
     "start:dev": "tsx src/index.ts",
     "build": "npm run lint && npm run lint:fix && npm run format && tsc -p tsconfig.json",
+    "prepare": "husky",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
@@ -20,7 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "@fastify/cors": "^11.2.0",
-    "@fastify/static": "^7.0.4",
+    "@fastify/static": "^8.3.0",
     "csv-parse": "^6.1.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
@@ -37,6 +38,9 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@types/node": "^25.0.2",
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "husky": "^9.1.6",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-n": "^17.23.1",
@@ -47,5 +51,88 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "parserPreset": {
+      "name": "@commitlint/config-conventional",
+      "opts": {
+        "noteKeywords": [
+          "BREAKING CHANGE",
+          "BREAKING CHANGES",
+          "BREAKING"
+        ]
+      }
+    },
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "perf",
+          "test",
+          "build",
+          "ci",
+          "chore",
+          "revert"
+        ]
+      ],
+      "type-case": [
+        2,
+        "always",
+        "lower-case"
+      ],
+      "scope-enum": [
+        2,
+        "always",
+        [
+          "api",
+          "webapp",
+          "infra",
+          "repo"
+        ]
+      ],
+      "scope-empty": [
+        2,
+        "never"
+      ],
+      "scope-case": [
+        2,
+        "always",
+        "kebab-case"
+      ],
+      "subject-case": [
+        2,
+        "always",
+        [
+          "lower-case"
+        ]
+      ],
+      "subject-full-stop": [
+        2,
+        "never",
+        "."
+      ],
+      "header-max-length": [
+        2,
+        "always",
+        72
+      ],
+      "body-leading-blank": [
+        2,
+        "always"
+      ],
+      "footer-leading-blank": [
+        2,
+        "always"
+      ]
+    }
   }
 }

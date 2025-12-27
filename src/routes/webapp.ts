@@ -15,7 +15,7 @@ export default async function webappRoutes(app: FastifyInstance) {
   await app.register(fastifyStatic, {
     root: webappRoot,
     prefix: '/webapp/',
-    decorateReply: false,
+    decorateReply: true,
   });
   app.get('/webapp', async (_req, reply) => {
     reply.header('content-type', 'text/html; charset=utf-8');
@@ -25,9 +25,12 @@ export default async function webappRoutes(app: FastifyInstance) {
   // Telegram-authenticated API
   app.get('/api/me', { preHandler: telegramAuth }, async (req, reply) => {
     const project = (req as any).project;
+    const bypass = !!(req as any).devBypass;
     const githubInstallUrl = config.githubAppSlug
       ? `https://github.com/apps/${config.githubAppSlug}/installations/new`
-      : null;
+      : bypass
+        ? 'https://example.com/install'
+        : null;
     return reply.send({
       ok: true,
       project: { _id: project._id, name: project.name },
@@ -58,23 +61,62 @@ export default async function webappRoutes(app: FastifyInstance) {
 
   app.post('/api/selftest', { preHandler: telegramAuth }, async (req, reply) => {
     const project = (req as any).project;
+    const bypass = !!(req as any).devBypass;
+    const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
+    if (noDb) {
+      return reply.send({
+        ok: true,
+        checklist: {
+          hasRecentEvents15m: false,
+          hasWeeklyMetrics: false,
+          githubInstalled: !!project?.github?.installationId,
+        },
+        lastEventAt: null,
+      });
+    }
     const now = new Date();
     const since = new Date(now.getTime() - 15 * 60 * 1000);
     const recent = await EventModel.countDocuments({ projectId: project._id, ts: { $gte: since } });
     const week = getLastIsoWeek();
     const weekly = await getWeekly(String(project._id), week);
+    if (bypass && (!recent || recent === 0) && (!weekly || (typeof weekly === 'object' && Object.keys(weekly).length === 0))) {
+      return reply.send({
+        ok: true,
+        checklist: {
+          hasRecentEvents15m: false,
+          hasWeeklyMetrics: false,
+          githubInstalled: !!project?.github?.installationId,
+        },
+        lastEventAt: null,
+      });
+    }
     return reply.send({ ok: true, recentEvents15m: recent, weekly });
   });
 
   app.get('/api/envs', { preHandler: telegramAuth }, async (req, reply) => {
     const project = (req as any).project;
+    const bypass = !!(req as any).devBypass;
+    const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
+    if (noDb) {
+      return reply.send({ ok: true, seenEnvs: ['Yandex Cloud', 'production'], selected: ['Yandex Cloud'] });
+    }
     const seen = await EventModel.distinct('meta.deploymentEnvironment', { projectId: project._id });
     const selected = project?.settings?.prodEnvironments || [];
-    return reply.send({ ok: true, seenEnvs: (seen || []).filter(Boolean), selected });
+    const filtered = (seen || []).filter(Boolean);
+    if (bypass && filtered.length === 0 && selected.length === 0) {
+      return reply.send({ ok: true, seenEnvs: ['Yandex Cloud', 'production'], selected: ['Yandex Cloud'] });
+    }
+    return reply.send({ ok: true, seenEnvs: filtered, selected });
   });
 
   app.post('/api/envs', { preHandler: telegramAuth }, async (req, reply) => {
     const project = (req as any).project;
+    const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
+    if (noDb) {
+      const body: any = req.body || {};
+      const selected: string[] = Array.isArray(body.selected) ? body.selected : [];
+      return reply.send({ ok: true, selected });
+    }
     const body: any = req.body || {};
     const selected: string[] = Array.isArray(body.selected) ? body.selected : [];
     await ProjectModel.updateOne({ _id: project._id }, { $set: { 'settings.prodEnvironments': selected } });

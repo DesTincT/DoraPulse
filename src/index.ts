@@ -10,7 +10,7 @@ import githubAppWebhook from './routes/webhooks.github.app.js';
 import incidentsRoutes from './routes/incidents.js';
 import pulseRoutes from './routes/pulse.js';
 
-const PORT = Number(process.env.PORT ?? 3000);
+const PORT = Number(process.env.PORT ?? 8080);
 
 export async function buildServer() {
   const fastify = Fastify({ logger: true });
@@ -41,21 +41,42 @@ export async function buildServer() {
 
   fastify.get('/', async () => ({ ok: true, name: 'dora-pulse-api' }));
 
-  // Mongo
-  try {
-    await mongoose.connect(config.mongoUri);
-    fastify.log.info('MongoDB connected');
-  } catch (err) {
-    fastify.log.error({ err }, 'MongoDB connection error');
-    process.exit(1);
+  const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
+  if (!noDb) {
+    // Mongo
+    try {
+      await mongoose.connect(config.mongoUri);
+      fastify.log.info('MongoDB connected');
+    } catch (err) {
+      fastify.log.error({ err }, 'MongoDB connection error');
+      process.exit(1);
+    }
+  } else {
+    fastify.log.warn('DORA_DEV_NO_DB=true: MongoDB connection skipped (DB-less dev mode)');
   }
 
   // Регистрация роутов
-  await fastify.register(githubWebhook);
-  await fastify.register(githubAppWebhook);
-  await fastify.register(metricsRoutes);
-  await fastify.register(incidentsRoutes as any);
-  await fastify.register(pulseRoutes as any);
+  if (!noDb) {
+    await fastify.register(githubWebhook);
+    await fastify.register(githubAppWebhook);
+    await fastify.register(metricsRoutes);
+    await fastify.register(incidentsRoutes as any);
+    await fastify.register(pulseRoutes as any);
+  } else {
+    // Lightweight placeholders for non-essential routes in DB-less mode
+    fastify.all('/webhooks/*', async (_req, reply) => {
+      return reply.code(503).send({ ok: false, error: 'webhooks disabled in DB-less dev mode' });
+    });
+    fastify.all('/metrics*', async (_req, reply) => {
+      return reply.code(503).send({ ok: false, error: 'metrics disabled in DB-less dev mode' });
+    });
+    fastify.all('/incidents*', async (_req, reply) => {
+      return reply.code(503).send({ ok: false, error: 'incidents disabled in DB-less dev mode' });
+    });
+    fastify.all('/pulse*', async (_req, reply) => {
+      return reply.code(503).send({ ok: false, error: 'pulse disabled in DB-less dev mode' });
+    });
+  }
   try {
     const mod = await import('./routes/webapp.js');
     if (mod?.default && typeof mod.default === 'function') {
@@ -63,7 +84,11 @@ export async function buildServer() {
       fastify.log.info({ routeFile: 'webapp' }, 'route registered');
     }
   } catch {}
-  await import('./cron/jobs.js');
+  if (!noDb) {
+    await import('./cron/jobs.js');
+  } else {
+    fastify.log.warn('DORA_DEV_NO_DB=true: cron jobs not started');
+  }
 
   // Админ/дебаг — только вне production
   if (process.env.NODE_ENV !== 'production') {
@@ -88,7 +113,11 @@ buildServer()
       }
       fastify.log.info(`Server listening at ${address}`);
     });
-    initBotPolling();
+    if (String(process.env.DORA_DEV_NO_DB || '').toLowerCase() !== 'true') {
+      initBotPolling();
+    } else {
+      fastify.log.warn('DORA_DEV_NO_DB=true: Telegram bot polling not started');
+    }
   })
   .catch((err) => {
     console.error('Server error:', err);

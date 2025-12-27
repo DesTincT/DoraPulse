@@ -1,3 +1,4 @@
+import React from 'https://esm.sh/react@18';
 export function ConnectCard({ me, onInstall }) {
   return React.createElement(
     'div',
