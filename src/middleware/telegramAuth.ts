@@ -12,6 +12,12 @@ interface TelegramInitData {
   [k: string]: string | undefined;
 }
 
+function isTrueish(val: string | undefined): boolean {
+  if (!val) return false;
+  const v = val.toLowerCase();
+  return v === 'true' || v === '1' || v === 'yes';
+}
+
 function parseInitData(raw?: string): TelegramInitData | null {
   if (!raw || typeof raw !== 'string') return null;
   const params = new URLSearchParams(raw);
@@ -50,6 +56,34 @@ function validateTelegramInitData(raw?: string): { ok: boolean; data?: TelegramI
 }
 
 export async function telegramAuth(req: FastifyRequest, reply: FastifyReply) {
+  // DEV-only bypass for local webapp preview
+  if (process.env.NODE_ENV !== 'production') {
+    (req as any).devBypass = true;
+    const devProjectId = process.env.DORA_DEV_PROJECT_ID;
+    if (devProjectId) {
+      // Lightweight in-memory project reference (no DB required)
+      (req as any).project = {
+        _id: devProjectId,
+        name: 'dev_project',
+        github: {},
+        settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
+      };
+      return;
+    }
+    // Fallback: find or create a deterministic dev project in DB
+    let project = await ProjectModel.findOne({ name: 'dev_project' });
+    if (!project) {
+      project = await new ProjectModel({
+        name: 'dev_project',
+        chatId: 0,
+        accessKey: Math.random().toString(36).slice(2, 11),
+        settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
+      } as any).save();
+    }
+    (req as any).project = project;
+    return;
+  }
+
   const initData =
     (req.headers['x-telegram-init-data'] as string) ||
     (req.headers['x-telegram-webapp-initdata'] as string) ||

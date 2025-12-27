@@ -1,3 +1,4 @@
+import React from 'https://esm.sh/react@18';
 export function EnvSelector({ envs, setEnvs, onReload, onSave, saving }) {
   return React.createElement(
     'div',
