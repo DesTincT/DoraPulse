@@ -11,11 +11,13 @@ import { VerifyRow } from '/webapp/src/components/VerifyRow.js';
 import { EnvRow } from '/webapp/src/components/EnvRow.js';
 
 function App() {
-  const { tg, initData } = useTelegram();
+  const { tg, initData, detected, initDataLen } = useTelegram();
 
   const me = useMe(initData);
   const envs = useEnvs(initData);
   const self = useSelfTest(initData);
+
+  const authed = !!me.ok;
 
   const refreshAll = () => {
     void me.reload();
@@ -25,7 +27,12 @@ function App() {
   return React.createElement(
     'div',
     { className: 'min-h-screen bg-base-200' },
-    React.createElement(Header, { onRefresh: refreshAll, disabled: me.loading || envs.loading }),
+    React.createElement(Header, {
+      onRefresh: refreshAll,
+      disabled: me.loading || envs.loading,
+      telegramDetected: detected,
+      initDataLen,
+    }),
     React.createElement(
       ListSection,
       null,
@@ -38,6 +45,7 @@ function App() {
         running: self.running,
         result: self.result,
         onRun: self.run,
+        disabled: !authed,
       }),
       React.createElement(EnvRow, {
         envText: envs.envText,
@@ -45,6 +53,7 @@ function App() {
         onSave: envs.save,
         saving: envs.saving,
         recentlySaved: envs.recentlySaved,
+        disabled: !authed,
       }),
     ),
   );

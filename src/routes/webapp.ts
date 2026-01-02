@@ -8,14 +8,30 @@ import { getLastIsoWeek } from '../utils.js';
 
 export default async function webappRoutes(app: FastifyInstance) {
   // Telegram-authenticated API
-  app.get('/api/me', { preHandler: app.telegramAuth }, async (req, reply) => {
-    const project = (req as any).project;
-    const bypass = !!(req as any).devBypass;
+  app.get('/api/me', { preHandler: app.telegramAuthOptional }, async (req, reply) => {
+    const init = String(req.headers['x-telegram-init-data'] ?? '');
+    req.log.info(
+      {
+        telegramInitDataPresent: !!init,
+        telegramInitDataLen: init.length,
+        telegramInitDataPrefix: init ? `${init.slice(0, 40)}${init.length > 40 ? '…' : ''}` : '',
+        authError: req.telegramAuthError,
+      },
+      'api/me auth debug',
+    );
+
+    const bypass = !!req.devBypass;
     const githubInstallUrl = config.githubAppSlug
       ? `https://github.com/apps/${config.githubAppSlug}/installations/new`
       : bypass
         ? 'https://example.com/install'
         : null;
+
+    if (!req.project) {
+      return reply.send({ ok: false, error: 'open_in_telegram', githubInstallUrl });
+    }
+
+    const project = req.project;
     return reply.send({
       ok: true,
       project: { _id: project._id, name: project.name },
@@ -31,7 +47,7 @@ export default async function webappRoutes(app: FastifyInstance) {
 
   app.get('/api/github/callback', { preHandler: app.telegramAuth }, async (req, reply) => {
     try {
-      const project = (req as any).project;
+      const project = req.project!;
       const installationId = Number((req.query as any)?.installation_id);
       if (!installationId) return reply.code(400).send({ ok: false, error: 'installation_id required' });
       await ProjectModel.updateOne(
@@ -45,8 +61,8 @@ export default async function webappRoutes(app: FastifyInstance) {
   });
 
   app.post('/api/selftest', { preHandler: app.telegramAuth }, async (req, reply) => {
-    const project = (req as any).project;
-    const bypass = !!(req as any).devBypass;
+    const project = req.project!;
+    const bypass = !!req.devBypass;
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
     if (noDb) {
       return reply.send({
@@ -82,13 +98,29 @@ export default async function webappRoutes(app: FastifyInstance) {
     return reply.send({ ok: true, recentEvents15m: recent, weekly });
   });
 
-  app.get('/api/envs', { preHandler: app.telegramAuth }, async (req, reply) => {
-    const project = (req as any).project;
-    const bypass = !!(req as any).devBypass;
+  app.get('/api/envs', { preHandler: app.telegramAuthOptional }, async (req, reply) => {
+    const init = String(req.headers['x-telegram-init-data'] ?? '');
+    req.log.info(
+      {
+        telegramInitDataPresent: !!init,
+        telegramInitDataLen: init.length,
+        telegramInitDataPrefix: init ? `${init.slice(0, 40)}${init.length > 40 ? '…' : ''}` : '',
+        authError: req.telegramAuthError,
+      },
+      'api/envs auth debug',
+    );
+
+    if (!req.project) {
+      return reply.send({ ok: false, error: 'open_in_telegram', seenEnvs: [], selected: [] });
+    }
+
+    const project = req.project;
+    const bypass = !!req.devBypass;
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
     if (noDb) {
-      return reply.send({ ok: true, seenEnvs: ['Yandex Cloud', 'production'], selected: ['Yandex Cloud'] });
+      return reply.send({ ok: true, seenEnvs: ['Yandex Cloud', 'production'], selected: ['production'] });
     }
+
     const seen = await EventModel.distinct('meta.deploymentEnvironment', { projectId: project._id });
     const selected = project?.settings?.prodEnvironments || [];
     const filtered = (seen || []).filter(Boolean);
@@ -99,7 +131,7 @@ export default async function webappRoutes(app: FastifyInstance) {
   });
 
   app.post('/api/envs', { preHandler: app.telegramAuth }, async (req, reply) => {
-    const project = (req as any).project;
+    const project = req.project!;
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
     if (noDb) {
       const body: any = req.body || {};

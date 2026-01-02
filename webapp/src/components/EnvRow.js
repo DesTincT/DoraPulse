@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'https://esm.sh/react@18';
 import { ListRow } from '/webapp/src/components/ListRow.js';
 import { InlineMessage } from '/webapp/src/components/InlineMessage.js';
 
-export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved }) {
+export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved, disabled }) {
   const [local, setLocal] = useState(envText || '');
   useEffect(() => setLocal(envText || ''), [envText]);
 
@@ -10,6 +10,7 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved }) {
     className: 'input input-bordered w-full',
     placeholder: 'production',
     value: local,
+    disabled: !!disabled,
     onChange: (e) => setLocal(e.target.value),
   });
   const hint = React.createElement(
@@ -27,7 +28,7 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved }) {
         setEnvText(local);
         await onSave();
       },
-      disabled: saving,
+      disabled: saving || !!disabled,
     },
     saving ? 'Saving…' : 'Save',
   );

@@ -23,7 +23,7 @@ export default async function githubWebhook(app: FastifyInstance) {
       // Validate GitHub signature if enabled
       if (config.validateWebhook) {
         const sigHeader = String((req.headers['x-hub-signature-256'] ?? '') as string);
-        const raw: Buffer = (req as any).rawBody || Buffer.from(JSON.stringify(req.body ?? {}));
+        const raw: Buffer = req.rawBody || Buffer.from(JSON.stringify(req.body ?? {}));
         const digest = createHmac('sha256', config.webhookSecret).update(raw).digest('hex');
         const expected = `sha256=${digest}`;
         const ok =

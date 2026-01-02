@@ -18,7 +18,7 @@ export default async function githubAppWebhook(app: FastifyInstance) {
     try {
       // Signature validation (HMAC-SHA256)
       const sigHeader = String((req.headers['x-hub-signature-256'] ?? '') as string);
-      const raw: Buffer = (req as any).rawBody || Buffer.from(JSON.stringify(req.body ?? {}));
+      const raw: Buffer = req.rawBody || Buffer.from(JSON.stringify(req.body ?? {}));
       const digest = createHmac('sha256', config.webhookSecret).update(raw).digest('hex');
       const expected = `sha256=${digest}`;
       const ok =
