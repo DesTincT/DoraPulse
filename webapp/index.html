@@ -7,6 +7,17 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <style>
+      /* Avoid always-on body scrollbars in Telegram WebView / small viewports */
+      html,
+      body,
+      #app {
+        height: 100%;
+      }
+      body {
+        overflow: hidden;
+      }
+    </style>
   </head>
   <body class="bg-base-200">
     <div id="app" class="container mx-auto"></div>

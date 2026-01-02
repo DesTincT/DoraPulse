@@ -26,35 +26,39 @@ function App() {
 
   return React.createElement(
     'div',
-    { className: 'min-h-screen bg-base-200' },
-    React.createElement(Header, {
-      onRefresh: refreshAll,
-      disabled: me.loading || envs.loading,
-      telegramDetected: detected,
-      initDataLen,
-    }),
+    { className: 'h-[100dvh] bg-base-200 overflow-hidden' },
     React.createElement(
-      ListSection,
-      null,
-      React.createElement(InstallRow, {
-        installed: !!(me?.github && me.github.installationId),
-        url: me.githubInstallUrl,
-        tg,
+      'div',
+      { className: 'h-full overflow-y-auto overscroll-none' },
+      React.createElement(Header, {
+        onRefresh: refreshAll,
+        disabled: me.loading || envs.loading,
+        telegramDetected: detected,
+        initDataLen,
       }),
-      React.createElement(VerifyRow, {
-        running: self.running,
-        result: self.result,
-        onRun: self.run,
-        disabled: !authed,
-      }),
-      React.createElement(EnvRow, {
-        envText: envs.envText,
-        setEnvText: envs.setEnvText,
-        onSave: envs.save,
-        saving: envs.saving,
-        recentlySaved: envs.recentlySaved,
-        disabled: !authed,
-      }),
+      React.createElement(
+        ListSection,
+        null,
+        React.createElement(InstallRow, {
+          installed: !!(me?.github && me.github.installationId),
+          url: me.githubInstallUrl,
+          tg,
+        }),
+        React.createElement(VerifyRow, {
+          running: self.running,
+          result: self.result,
+          onRun: self.run,
+          disabled: !authed,
+        }),
+        React.createElement(EnvRow, {
+          envText: envs.envText,
+          setEnvText: envs.setEnvText,
+          onSave: envs.save,
+          saving: envs.saving,
+          recentlySaved: envs.recentlySaved,
+          disabled: !authed,
+        }),
+      ),
     ),
   );
 }
