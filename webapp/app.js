@@ -40,7 +40,7 @@ function App() {
         ListSection,
         null,
         React.createElement(InstallRow, {
-          installed: !!(me?.github && me.github.installationId),
+          installed: !!me.installed,
           url: me.githubInstallUrl,
           tg,
         }),

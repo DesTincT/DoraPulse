@@ -11,7 +11,10 @@ interface ProjectSettings {
 
 interface ProjectGithub {
   installationId?: number;
+  accountLogin?: string;
+  accountType?: 'User' | 'Organization';
   repos?: string[];
+  updatedAt?: Date;
 }
 
 export interface Project extends Document {
@@ -41,7 +44,10 @@ const ProjectSchema = new Schema<Project>(
     },
     github: {
       installationId: { type: Number, required: false },
+      accountLogin: { type: String, required: false },
+      accountType: { type: String, enum: ['User', 'Organization'], required: false },
       repos: { type: [String], required: false, default: undefined },
+      updatedAt: { type: Date, required: false },
     },
   },
   {
