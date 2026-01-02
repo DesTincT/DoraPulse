@@ -1,6 +1,11 @@
 import React from 'https://esm.sh/react@18';
 
-export function Header({ onRefresh, disabled }) {
+export function Header({ onRefresh, disabled, telegramDetected, initDataLen }) {
+  const debug = React.createElement(
+    'div',
+    { className: 'text-xs text-base-content/50 mt-1' },
+    `Telegram: ${telegramDetected ? 'yes' : 'no'} · initData: ${initDataLen || 0}`,
+  );
   return React.createElement(
     'div',
     { className: 'max-w-lg mx-auto px-4 mt-4 mb-2' },
@@ -16,6 +21,7 @@ export function Header({ onRefresh, disabled }) {
           { className: 'text-sm text-base-content/60' },
           'Connect GitHub, verify events, set production environments',
         ),
+        debug,
       ),
       React.createElement(
         'button',

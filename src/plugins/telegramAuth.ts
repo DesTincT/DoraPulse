@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { telegramAuth } from '../middleware/telegramAuth.js';
+import { telegramAuth, telegramAuthOptional } from '../middleware/telegramAuth.js';
 
 /**
  * Registers `fastify.telegramAuth` preHandler.
@@ -10,4 +10,5 @@ import { telegramAuth } from '../middleware/telegramAuth.js';
  */
 export default fp(async (app) => {
   app.decorate('telegramAuth', telegramAuth);
+  app.decorate('telegramAuthOptional', telegramAuthOptional);
 });

@@ -5,6 +5,8 @@ export function useMe(initData) {
   const [me, setMe] = useState(null);
   const [githubInstallUrl, setGithubInstallUrl] = useState(null);
   const [github, setGithub] = useState(null);
+  const [ok, setOk] = useState(false);
+  const [apiError, setApiError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -12,12 +14,16 @@ export function useMe(initData) {
     try {
       setLoading(true);
       setError(null);
+      setApiError(null);
       const r = await apiGet('/api/me', initData);
       setMe(r?.project || null);
       setGithub(r?.github || null);
       setGithubInstallUrl(r?.githubInstallUrl || null);
+      setOk(!!r?.ok);
+      if (r?.ok === false && r?.error) setApiError(String(r.error));
     } catch (e) {
       setError(e);
+      setOk(false);
     } finally {
       setLoading(false);
     }
@@ -28,5 +34,5 @@ export function useMe(initData) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initData]);
 
-  return { me, github, githubInstallUrl, reload: load, loading, error, setMe };
+  return { ok, apiError, me, github, githubInstallUrl, reload: load, loading, error, setMe };
 }

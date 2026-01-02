@@ -22,7 +22,7 @@ export async function buildServer() {
   // Capture raw JSON body for HMAC validation while still parsing JSON
   fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
     try {
-      (req as any).rawBody = body as Buffer;
+      req.rawBody = body as Buffer;
       const parsed = body && (body as Buffer).length ? JSON.parse((body as Buffer).toString('utf8')) : {};
       done(null, parsed);
     } catch (err) {
