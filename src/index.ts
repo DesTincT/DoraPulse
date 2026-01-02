@@ -30,19 +30,6 @@ export async function buildServer() {
     }
   });
 
-  await fastify.register(cors, {
-    origin: (origin, cb) => {
-      try {
-        if (!origin) return cb(null, true);
-        const u = new URL(origin);
-        if (u.hostname === 'localhost') return cb(null, true);
-        return cb(new Error('Not allowed by CORS'), false);
-      } catch {
-        return cb(new Error('Not allowed by CORS'), false);
-      }
-    },
-  });
-
   fastify.get('/', async () => ({ ok: true, name: 'dora-pulse-api' }));
   await fastify.register(healthRoutes);
 
@@ -86,7 +73,26 @@ export async function buildServer() {
       return reply.code(503).send({ ok: false, error: 'pulse disabled in DB-less dev mode' });
     });
   }
-  await fastify.register(webappRoutes);
+
+  // Apply CORS only to /api/* routes (never to /webapp/* static assets).
+  const publicOrigin = new URL(config.publicAppUrl).origin;
+  await fastify.register(async (api) => {
+    await api.register(cors, {
+      origin: (origin, cb) => {
+        try {
+          // Telegram WebApp requests may omit Origin.
+          if (!origin) return cb(null, true);
+          const u = new URL(origin);
+          if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1') return cb(null, true);
+          if (u.origin === publicOrigin) return cb(null, true);
+          return cb(new Error('Not allowed by CORS'), false);
+        } catch {
+          return cb(new Error('Not allowed by CORS'), false);
+        }
+      },
+    });
+    await api.register(webappRoutes);
+  });
   if (!noDb) {
     await import('./cron/jobs.js');
   } else {
