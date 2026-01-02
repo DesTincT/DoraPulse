@@ -1,29 +1,14 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { FastifyInstance } from 'fastify';
-import { telegramAuth } from '../middleware/telegramAuth.js';
 import { config } from '../config.js';
 import { ProjectModel } from '../models/Project.js';
 import { EventModel } from '../models/Event.js';
 import { getWeekly } from '../services/metricsService.js';
 import { getLastIsoWeek } from '../utils.js';
-import fastifyStatic from '@fastify/static';
-import path from 'path';
 
 export default async function webappRoutes(app: FastifyInstance) {
-  // Serve /webapp as static folder
-  const webappRoot = path.resolve(process.cwd(), 'webapp');
-  await app.register(fastifyStatic, {
-    root: webappRoot,
-    prefix: '/webapp/',
-    decorateReply: true,
-  });
-  app.get('/webapp', async (_req, reply) => {
-    reply.header('content-type', 'text/html; charset=utf-8');
-    return reply.sendFile('index.html');
-  });
-
   // Telegram-authenticated API
-  app.get('/api/me', { preHandler: telegramAuth }, async (req, reply) => {
+  app.get('/api/me', { preHandler: app.telegramAuth }, async (req, reply) => {
     const project = (req as any).project;
     const bypass = !!(req as any).devBypass;
     const githubInstallUrl = config.githubAppSlug
@@ -39,12 +24,12 @@ export default async function webappRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get('/api/github/install-url', { preHandler: telegramAuth }, async (_req, reply) => {
+  app.get('/api/github/install-url', { preHandler: app.telegramAuth }, async (_req, reply) => {
     if (!config.githubAppSlug) return reply.send({ ok: false, url: null, error: 'GITHUB_APP_SLUG not set' });
     return reply.send({ ok: true, url: `https://github.com/apps/${config.githubAppSlug}/installations/new` });
   });
 
-  app.get('/api/github/callback', { preHandler: telegramAuth }, async (req, reply) => {
+  app.get('/api/github/callback', { preHandler: app.telegramAuth }, async (req, reply) => {
     try {
       const project = (req as any).project;
       const installationId = Number((req.query as any)?.installation_id);
@@ -59,7 +44,7 @@ export default async function webappRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post('/api/selftest', { preHandler: telegramAuth }, async (req, reply) => {
+  app.post('/api/selftest', { preHandler: app.telegramAuth }, async (req, reply) => {
     const project = (req as any).project;
     const bypass = !!(req as any).devBypass;
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
@@ -97,7 +82,7 @@ export default async function webappRoutes(app: FastifyInstance) {
     return reply.send({ ok: true, recentEvents15m: recent, weekly });
   });
 
-  app.get('/api/envs', { preHandler: telegramAuth }, async (req, reply) => {
+  app.get('/api/envs', { preHandler: app.telegramAuth }, async (req, reply) => {
     const project = (req as any).project;
     const bypass = !!(req as any).devBypass;
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
@@ -113,7 +98,7 @@ export default async function webappRoutes(app: FastifyInstance) {
     return reply.send({ ok: true, seenEnvs: filtered, selected });
   });
 
-  app.post('/api/envs', { preHandler: telegramAuth }, async (req, reply) => {
+  app.post('/api/envs', { preHandler: app.telegramAuth }, async (req, reply) => {
     const project = (req as any).project;
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
     if (noDb) {

@@ -9,6 +9,10 @@ import githubWebhook from './routes/webhooks.github.js';
 import githubAppWebhook from './routes/webhooks.github.app.js';
 import incidentsRoutes from './routes/incidents.js';
 import pulseRoutes from './routes/pulse.js';
+import webappRoutes from './routes/webapp.js';
+import healthRoutes from './routes/health.js';
+import webappStatic from './plugins/webappStatic.js';
+import telegramAuthPlugin from './plugins/telegramAuth.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
 
@@ -40,6 +44,11 @@ export async function buildServer() {
   });
 
   fastify.get('/', async () => ({ ok: true, name: 'dora-pulse-api' }));
+  await fastify.register(healthRoutes);
+
+  // Plugins (used by /webapp and mini-app /api/* routes)
+  await fastify.register(telegramAuthPlugin);
+  await fastify.register(webappStatic);
 
   const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
   if (!noDb) {
@@ -77,13 +86,7 @@ export async function buildServer() {
       return reply.code(503).send({ ok: false, error: 'pulse disabled in DB-less dev mode' });
     });
   }
-  try {
-    const mod = await import('./routes/webapp.js');
-    if (mod?.default && typeof mod.default === 'function') {
-      await fastify.register(mod.default);
-      fastify.log.info({ routeFile: 'webapp' }, 'route registered');
-    }
-  } catch {}
+  await fastify.register(webappRoutes);
   if (!noDb) {
     await import('./cron/jobs.js');
   } else {

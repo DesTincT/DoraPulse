@@ -60,7 +60,20 @@ export async function telegramAuth(req: FastifyRequest, reply: FastifyReply) {
   const shouldDevBypass = process.env.NODE_ENV !== 'production' && isTrueish(process.env.DORA_DEV_BYPASS_TELEGRAM_AUTH);
   if (shouldDevBypass) {
     (req as any).devBypass = true;
+    const noDb = isTrueish(process.env.DORA_DEV_NO_DB);
     const devProjectId = process.env.DORA_DEV_PROJECT_ID;
+
+    // In DB-less dev mode, never touch Mongo; use a stable in-memory project.
+    if (noDb) {
+      (req as any).project = {
+        _id: devProjectId || 'dev',
+        name: 'dev_project',
+        github: {},
+        settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
+      };
+      return;
+    }
+
     if (devProjectId) {
       // Lightweight in-memory project reference (no DB required)
       (req as any).project = {
