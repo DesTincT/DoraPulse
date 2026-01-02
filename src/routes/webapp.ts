@@ -5,45 +5,34 @@ import { ProjectModel } from '../models/Project.js';
 import { EventModel } from '../models/Event.js';
 import { getWeekly } from '../services/metricsService.js';
 import { getLastIsoWeek } from '../utils.js';
-import { Types } from 'mongoose';
 
 export default async function webappRoutes(app: FastifyInstance) {
   // Telegram-authenticated API
-  app.get('/api/me', { preHandler: app.telegramAuthOptional }, async (req, reply) => {
-    const init = String(req.headers['x-telegram-init-data'] ?? '');
-    req.log.info(
-      {
-        telegramInitDataPresent: !!init,
-        telegramInitDataLen: init.length,
-        telegramInitDataPrefix: init ? `${init.slice(0, 40)}${init.length > 40 ? '…' : ''}` : '',
-        authError: req.telegramAuthError,
-      },
-      'api/me auth debug',
-    );
-
+  app.get('/api/me', { preHandler: app.telegramAuth }, async (req, reply) => {
+    const project = req.project!;
     const bypass = !!req.devBypass;
+
     const baseInstallUrl = config.githubAppSlug
       ? `https://github.com/apps/${config.githubAppSlug}/installations/new`
       : bypass
         ? 'https://example.com/install'
         : null;
 
-    if (!req.project) {
-      return reply.send({ ok: false, error: 'open_in_telegram', githubInstallUrl: baseInstallUrl });
-    }
-
-    const project = req.project;
-    const projectId = String(project._id);
-    const stateParam = Types.ObjectId.isValid(projectId) ? `?state=${encodeURIComponent(projectId)}` : '';
-    const githubInstallUrl = baseInstallUrl && stateParam ? `${baseInstallUrl}${stateParam}` : baseInstallUrl;
+    // GitHub App install URL MUST include state=<accessKey> so /github/app/setup can bind it.
+    const githubInstallUrl =
+      baseInstallUrl && project.accessKey
+        ? `${baseInstallUrl}?state=${encodeURIComponent(project.accessKey)}`
+        : baseInstallUrl;
 
     const installationId =
-      typeof project.github?.installationId === 'number' ? project.github.installationId : undefined;
-    const installed = !!installationId;
+      typeof project?.settings?.github?.installationId === 'number'
+        ? project.settings.github.installationId
+        : undefined;
+
     return reply.send({
       ok: true,
-      projectId,
-      installed,
+      projectId: String(project._id),
+      installed: !!installationId,
       github: { installationId },
       githubInstallUrl,
     });
@@ -64,7 +53,7 @@ export default async function webappRoutes(app: FastifyInstance) {
         checklist: {
           hasRecentEvents15m: false,
           hasWeeklyMetrics: false,
-          githubInstalled: !!project?.github?.installationId,
+          githubInstalled: !!project?.settings?.github?.installationId,
         },
         lastEventAt: null,
       });
@@ -84,7 +73,7 @@ export default async function webappRoutes(app: FastifyInstance) {
         checklist: {
           hasRecentEvents15m: false,
           hasWeeklyMetrics: false,
-          githubInstalled: !!project?.github?.installationId,
+          githubInstalled: !!project?.settings?.github?.installationId,
         },
         lastEventAt: null,
       });
@@ -92,31 +81,16 @@ export default async function webappRoutes(app: FastifyInstance) {
     return reply.send({ ok: true, recentEvents15m: recent, weekly });
   });
 
-  app.get('/api/envs', { preHandler: app.telegramAuthOptional }, async (req, reply) => {
-    const init = String(req.headers['x-telegram-init-data'] ?? '');
-    req.log.info(
-      {
-        telegramInitDataPresent: !!init,
-        telegramInitDataLen: init.length,
-        telegramInitDataPrefix: init ? `${init.slice(0, 40)}${init.length > 40 ? '…' : ''}` : '',
-        authError: req.telegramAuthError,
-      },
-      'api/envs auth debug',
-    );
-
-    if (!req.project) {
-      return reply.send({ ok: false, error: 'open_in_telegram', seenEnvs: [], selected: [] });
-    }
-
-    const project = req.project;
+  app.get('/api/envs', { preHandler: app.telegramAuth }, async (req, reply) => {
+    const project = req.project!;
     const bypass = !!req.devBypass;
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
     if (noDb) {
-      return reply.send({ ok: true, seenEnvs: ['Yandex Cloud', 'production'], selected: ['production'] });
+      return reply.send({ ok: true, seenEnvs: ['production'], selected: ['production'] });
     }
 
     const seen = await EventModel.distinct('meta.deploymentEnvironment', { projectId: project._id });
-    const selected = project?.settings?.prodEnvironments || [];
+    const selected = project?.settings?.prodEnvironments || ['production'];
     const filtered = (seen || []).filter(Boolean);
     if (bypass && filtered.length === 0 && selected.length === 0) {
       return reply.send({ ok: true, seenEnvs: ['Yandex Cloud', 'production'], selected: ['Yandex Cloud'] });

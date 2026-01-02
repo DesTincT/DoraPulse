@@ -9,6 +9,7 @@ import { ListSection } from '/webapp/src/components/ListSection.js';
 import { InstallRow } from '/webapp/src/components/InstallRow.js';
 import { VerifyRow } from '/webapp/src/components/VerifyRow.js';
 import { EnvRow } from '/webapp/src/components/EnvRow.js';
+import { InlineMessage } from '/webapp/src/components/InlineMessage.js';
 
 function App() {
   const { tg, initData, detected, initDataLen } = useTelegram();
@@ -39,6 +40,13 @@ function App() {
       React.createElement(
         ListSection,
         null,
+        !authed && (me.apiError === 'open_in_telegram' || envs.apiError === 'open_in_telegram')
+          ? React.createElement(
+              'div',
+              { className: 'px-1 py-3' },
+              React.createElement(InlineMessage, { type: 'error' }, 'Open this page from Telegram to continue.'),
+            )
+          : null,
         React.createElement(InstallRow, {
           installed: !!me.installed,
           url: me.githubInstallUrl,

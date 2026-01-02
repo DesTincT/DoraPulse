@@ -7,13 +7,19 @@ export function useEnvs(initData) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [apiError, setApiError] = useState(null);
   const [savedAt, setSavedAt] = useState(null);
 
   async function load() {
     try {
       setLoading(true);
       setError(null);
+      setApiError(null);
       const r = await apiGet('/api/envs', initData);
+      if (r?.ok === false && r?.error) {
+        setApiError(String(r.error));
+        return;
+      }
       setEnvs({ seenEnvs: r?.seenEnvs || [], selected: r?.selected || [] });
       const text = Array.isArray(r?.selected) ? r.selected.join(', ') : '';
       setEnvText(text);
@@ -56,5 +62,5 @@ export function useEnvs(initData) {
     return Date.now() - savedAt < 2500;
   }, [savedAt]);
 
-  return { envs, envText, setEnvText, load, save, loading, saving, error, recentlySaved };
+  return { envs, envText, setEnvText, load, save, loading, saving, error, apiError, recentlySaved };
 }

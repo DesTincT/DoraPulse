@@ -105,7 +105,11 @@ export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyR
         _id: devProjectId || 'dev',
         name: 'dev_project',
         github: {},
-        settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
+        settings: {
+          prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' },
+          ltBaseline: 'pr_open',
+          github: {},
+        },
       };
       return;
     }
@@ -116,7 +120,11 @@ export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyR
         _id: devProjectId,
         name: 'dev_project',
         github: {},
-        settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
+        settings: {
+          prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' },
+          ltBaseline: 'pr_open',
+          github: {},
+        },
       };
       return;
     }
@@ -170,7 +178,10 @@ export async function telegramAuth(req: FastifyRequest, reply: FastifyReply) {
   const dbg = debugInitData(req);
   req.log.info({ telegramInitData: dbg, authError: req.telegramAuthError }, 'telegram auth failed');
 
-  return reply
-    .code(401)
-    .send({ ok: false, error: 'invalid telegram init data', reason: req.telegramAuthError?.reason });
+  return reply.code(401).send({
+    ok: false,
+    error: 'open_in_telegram',
+    reason: req.telegramAuthError?.reason || 'invalid_init_data',
+    message: 'Open this Mini App from Telegram.',
+  });
 }

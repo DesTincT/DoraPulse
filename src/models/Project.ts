@@ -7,6 +7,13 @@ interface ProjectSettings {
   };
   ltBaseline: 'pr_open' | 'first_commit';
   prodEnvironments?: string[];
+  github?: {
+    installationId?: number;
+    accountLogin?: string;
+    accountType?: 'User' | 'Organization';
+    repos?: string[];
+    updatedAt?: Date;
+  };
 }
 
 interface ProjectGithub {
@@ -41,6 +48,13 @@ const ProjectSchema = new Schema<Project>(
         required: true,
       },
       prodEnvironments: { type: [String], required: false, default: undefined },
+      github: {
+        installationId: { type: Number, required: false },
+        accountLogin: { type: String, required: false },
+        accountType: { type: String, enum: ['User', 'Organization'], required: false },
+        repos: { type: [String], required: false, default: undefined },
+        updatedAt: { type: Date, required: false },
+      },
     },
     github: {
       installationId: { type: Number, required: false },

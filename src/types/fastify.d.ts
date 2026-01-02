@@ -5,6 +5,7 @@ import type { Project } from '../models/Project.js';
 export interface DevProject {
   _id: string;
   name: string;
+  accessKey?: string;
   github?: {
     installationId?: number;
     repos?: string[];
@@ -14,6 +15,14 @@ export interface DevProject {
     prodRule: { branch: string; workflowNameRegex: string };
     ltBaseline: 'pr_open' | 'first_commit';
     prodEnvironments?: string[];
+    github?: {
+      installationId?: number;
+      accountLogin?: string;
+      accountType?: 'User' | 'Organization';
+      repos?: string[];
+      updatedAt?: Date;
+      [k: string]: unknown;
+    };
     [k: string]: unknown;
   };
   [k: string]: unknown;
