@@ -19,7 +19,8 @@ export default async function githubAppWebhook(app: FastifyInstance) {
       // Signature validation (HMAC-SHA256)
       const sigHeader = String((req.headers['x-hub-signature-256'] ?? '') as string);
       const raw: Buffer = req.rawBody || Buffer.from(JSON.stringify(req.body ?? {}));
-      const digest = createHmac('sha256', config.webhookSecret).update(raw).digest('hex');
+      const secret = process.env.GITHUB_APP_WEBHOOK_SECRET || config.webhookSecret;
+      const digest = createHmac('sha256', secret).update(raw).digest('hex');
       const expected = `sha256=${digest}`;
       const ok =
         !!sigHeader &&
@@ -37,11 +38,43 @@ export default async function githubAppWebhook(app: FastifyInstance) {
 
       const installationId: number | undefined =
         typeof payload?.installation?.id === 'number' ? payload.installation.id : undefined;
-      if (!installationId) return reply.code(404).send({ error: 'unknown installation' });
+      if (!installationId) {
+        app.log.info({ eventName }, 'github app webhook: missing installation id');
+        return reply.code(202).send({ ok: true, ignored: true, reason: 'missing_installation_id' });
+      }
 
-      const project = await ProjectModel.findOne({ 'github.installationId': installationId }).lean();
-      if (!project?._id) {
-        return reply.code(404).send({ error: 'unknown installation' });
+      const project = await ProjectModel.findOne({
+        $or: [{ 'settings.github.installationId': installationId }, { 'github.installationId': installationId }],
+      }).lean();
+      app.log.info({ eventName, installationId, matched: !!project?._id }, 'github app webhook received');
+      if (!project?._id) return reply.code(202).send({ ok: true, ignored: true, reason: 'unknown_installation' });
+
+      // Installation events: update linked repos/account metadata (MVP)
+      if (eventName === 'installation' || eventName === 'installation_repositories') {
+        const accountLogin: string | undefined = payload?.installation?.account?.login;
+        const accountType: string | undefined = payload?.installation?.account?.type;
+        const reposRaw = payload?.repositories || payload?.repositories_added || [];
+        const repos: string[] = Array.isArray(reposRaw)
+          ? reposRaw.map((r: any) => String(r?.full_name || '')).filter(Boolean)
+          : [];
+        await ProjectModel.updateOne(
+          { _id: project._id },
+          {
+            $set: {
+              'settings.github.installationId': installationId,
+              'settings.github.accountLogin': accountLogin,
+              'settings.github.accountType': accountType,
+              'settings.github.repos': repos,
+              'settings.github.updatedAt': new Date(),
+              // keep legacy location for backwards compatibility
+              'github.installationId': installationId,
+              'github.accountLogin': accountLogin,
+              'github.accountType': accountType,
+              'github.repos': repos,
+              'github.updatedAt': new Date(),
+            },
+          },
+        );
       }
 
       // resolve repoId if repository is present
@@ -64,10 +97,7 @@ export default async function githubAppWebhook(app: FastifyInstance) {
         events.push(...fromPush(payload, project));
       }
 
-      app.log.info(
-        { eventName, count: events.length, projectId: String(project._id), installationId },
-        'github app webhook accepted',
-      );
+      app.log.info({ eventName, count: events.length, projectId: String(project._id), installationId }, 'normalized');
 
       if (!events.length) return reply.send({ ok: true, inserted: 0, note: 'no events recognized' });
 
