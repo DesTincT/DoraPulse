@@ -8,7 +8,7 @@ export function Header({ onRefresh, disabled, telegramDetected, initDataLen }) {
   );
   return React.createElement(
     'div',
-    { className: 'max-w-lg mx-auto px-4 mt-4 mb-2' },
+    { className: 'max-w-lg mx-auto px-4 pt-4 pb-2' },
     React.createElement(
       'div',
       { className: 'flex items-start justify-between' },

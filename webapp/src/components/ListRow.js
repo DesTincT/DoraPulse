@@ -13,10 +13,11 @@ export function ListRow({ title, subtitle, right, children, last = false }) {
     right ? React.createElement('div', { className: 'flex items-center gap-2 shrink-0' }, right) : null,
   );
   const borderClass = last ? '' : 'border-b border-base-200/60';
+  const childrenPad = last ? '' : 'pb-4';
   return React.createElement(
     'div',
     { className: borderClass },
     row,
-    children ? React.createElement('div', { className: 'pb-4' }, children) : null,
+    children ? React.createElement('div', { className: childrenPad }, children) : null,
   );
 }
