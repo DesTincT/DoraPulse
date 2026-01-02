@@ -79,7 +79,11 @@ export default async function webappRoutes(app: FastifyInstance) {
     const recent = await EventModel.countDocuments({ projectId: project._id, ts: { $gte: since } });
     const week = getLastIsoWeek();
     const weekly = await getWeekly(String(project._id), week);
-    if (bypass && (!recent || recent === 0) && (!weekly || (typeof weekly === 'object' && Object.keys(weekly).length === 0))) {
+    if (
+      bypass &&
+      (!recent || recent === 0) &&
+      (!weekly || (typeof weekly === 'object' && Object.keys(weekly).length === 0))
+    ) {
       return reply.send({
         ok: true,
         checklist: {

@@ -12,5 +12,3 @@ export function StatusDot({ ok, label }) {
     React.createElement('span', null, label),
   );
 }
-
-

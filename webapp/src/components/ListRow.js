@@ -8,9 +8,7 @@ export function ListRow({ title, subtitle, right, children, last = false }) {
       'div',
       { className: 'min-w-0 pr-4' },
       React.createElement('div', { className: 'font-semibold truncate' }, title),
-      subtitle
-        ? React.createElement('div', { className: 'text-sm text-base-content/60 truncate' }, subtitle)
-        : null,
+      subtitle ? React.createElement('div', { className: 'text-sm text-base-content/60 truncate' }, subtitle) : null,
     ),
     right ? React.createElement('div', { className: 'flex items-center gap-2 shrink-0' }, right) : null,
   );
@@ -22,5 +20,3 @@ export function ListRow({ title, subtitle, right, children, last = false }) {
     children ? React.createElement('div', { className: 'pb-4' }, children) : null,
   );
 }
-
-

@@ -10,13 +10,13 @@ asdasdasd
 
 To preview the Telegram Mini App in a normal browser without Telegram:
 
-1) Start the dev server with DB-less mode and auth bypass:
+1. Start the dev server with DB-less mode and auth bypass:
 
 ```bash
 npm run dev
 ```
 
-2) Open the webapp:
+2. Open the webapp:
 
 ```bash
 http://localhost:8080/webapp

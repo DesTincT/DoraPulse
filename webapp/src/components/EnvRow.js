@@ -21,8 +21,7 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved }) {
   const button = React.createElement(
     'button',
     {
-      className:
-        'btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50',
+      className: 'btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50',
       onClick: async () => {
         // push local text up, then save
         setEnvText(local);
@@ -32,14 +31,8 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved }) {
     },
     saving ? 'Saving…' : 'Save',
   );
-  const right = React.createElement(
-    React.Fragment,
-    null,
-    button,
-  );
-  const footer = recentlySaved
-    ? React.createElement(InlineMessage, { type: 'success' }, 'Saved')
-    : null;
+  const right = React.createElement(React.Fragment, null, button);
+  const footer = recentlySaved ? React.createElement(InlineMessage, { type: 'success' }, 'Saved') : null;
   return React.createElement(
     ListRow,
     {
@@ -51,5 +44,3 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved }) {
     React.createElement(React.Fragment, null, body, footer),
   );
 }
-
-

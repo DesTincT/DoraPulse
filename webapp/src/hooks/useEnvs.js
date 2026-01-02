@@ -33,9 +33,7 @@ export function useEnvs(initData) {
         .map((s) => s.trim())
         .filter(Boolean);
       // dedupe case-insensitive
-      const dedup = Array.from(
-        new Map(parts.map((p) => [p.toLowerCase(), p])).values(),
-      );
+      const dedup = Array.from(new Map(parts.map((p) => [p.toLowerCase(), p])).values());
       await apiPost('/api/envs', { selected: dedup }, initData);
       setEnvs((prev) => ({ ...prev, selected: dedup }));
       setSavedAt(Date.now());
@@ -60,5 +58,3 @@ export function useEnvs(initData) {
 
   return { envs, envText, setEnvText, load, save, loading, saving, error, recentlySaved };
 }
-
-

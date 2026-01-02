@@ -10,8 +10,7 @@ export function InstallRow({ installed, url, tg }) {
   const button = React.createElement(
     'button',
     {
-      className:
-        'btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50',
+      className: 'btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50',
       onClick: () => {
         if (!url) return;
         try {
@@ -25,14 +24,9 @@ export function InstallRow({ installed, url, tg }) {
     },
     installed ? 'Reinstall' : 'Install',
   );
-  return React.createElement(
-    ListRow,
-    {
-      title: 'Install GitHub App',
-      subtitle: 'Choose repositories and grant access.',
-      right: React.createElement(React.Fragment, null, status, button),
-    },
-  );
+  return React.createElement(ListRow, {
+    title: 'Install GitHub App',
+    subtitle: 'Choose repositories and grant access.',
+    right: React.createElement(React.Fragment, null, status, button),
+  });
 }
-
-

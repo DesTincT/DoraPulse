@@ -16,7 +16,5 @@ console.log(`Open: http://localhost:${port}/webapp`);
 // Start the server via tsx
 const child = spawn('tsx', ['src/index.ts'], { stdio: 'inherit', shell: process.platform === 'win32' });
 child.on('exit', (code) => {
-  process.exit(code ?? 0);
+  process.exitCode = code ?? 0;
 });
-
-
