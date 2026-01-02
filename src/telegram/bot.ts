@@ -93,11 +93,7 @@ export function initBotPolling() {
     }
 
     const webAppUrl = process.env.MINIAPP_URL || `${config.publicAppUrl}/webapp`;
-    const startLines = [
-      ...uiText.startIntroLines,
-      ...uiText.startProjectInfo(String(project._id), project.accessKey),
-      ...uiText.startWebhookInfo(config.publicAppUrl, project.accessKey, config.webhookSecret || 'devsecret (local)'),
-    ].join('\n');
+    const startLines = uiText.startIntroLines.join('\n');
     await ctx.reply(startLines, mainMenu(webAppUrl));
   });
 

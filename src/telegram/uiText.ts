@@ -11,7 +11,13 @@ export const uiText = {
   mustStartFirst: 'Run /start first.',
   invalidWeekFormat: 'Format: /metrics or /metrics 2025-W51',
   // /start
-  startIntroLines: ['👋 Hi! I’m Dora Pulse bot.', 'I collect GitHub events and show weekly DORA metrics.', ''],
+  startIntroLines: [
+    'Welcome to Dora Pulse.',
+    '',
+    '1) Open the Mini App (button below) and install the GitHub App.',
+    '2) Return here and press Refresh in the Mini App to confirm it’s connected.',
+    '3) For GitHub webhook setup/help, run /link.',
+  ],
   startProjectInfo: (projectId: string, accessKey: string) => [
     `Project ID: ${projectId}`,
     `Project Key (PAK): ${accessKey}`,
