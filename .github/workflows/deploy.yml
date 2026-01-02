@@ -43,7 +43,7 @@ jobs:
       - name: Create deploy zip (dist + package*.json)
         run: |
           rm -f dora-dist.zip
-          zip -r dora-dist.zip dist package.json package-lock.json
+          zip -r dora-dist.zip dist webapp package.json package-lock.json
 
       - name: Add VM to known_hosts
         run: |
@@ -86,7 +86,7 @@ jobs:
             ZIP="/tmp/dora-dist.zip"
 
             cd /opt/dora/app
-            rm -rf dist package.json package-lock.json
+            rm -rf dist webapp package.json package-lock.json
             unzip -o "$ZIP"
             rm -f "$ZIP"
 
