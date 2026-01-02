@@ -5,6 +5,7 @@ import { ProjectModel } from '../models/Project.js';
 import { EventModel } from '../models/Event.js';
 import { getWeekly } from '../services/metricsService.js';
 import { getLastIsoWeek } from '../utils.js';
+import { Types } from 'mongoose';
 
 export default async function webappRoutes(app: FastifyInstance) {
   // Telegram-authenticated API
@@ -21,21 +22,29 @@ export default async function webappRoutes(app: FastifyInstance) {
     );
 
     const bypass = !!req.devBypass;
-    const githubInstallUrl = config.githubAppSlug
+    const baseInstallUrl = config.githubAppSlug
       ? `https://github.com/apps/${config.githubAppSlug}/installations/new`
       : bypass
         ? 'https://example.com/install'
         : null;
 
     if (!req.project) {
-      return reply.send({ ok: false, error: 'open_in_telegram', githubInstallUrl });
+      return reply.send({ ok: false, error: 'open_in_telegram', githubInstallUrl: baseInstallUrl });
     }
 
     const project = req.project;
+    const projectId = String(project._id);
+    const stateParam = Types.ObjectId.isValid(projectId) ? `?state=${encodeURIComponent(projectId)}` : '';
+    const githubInstallUrl = baseInstallUrl && stateParam ? `${baseInstallUrl}${stateParam}` : baseInstallUrl;
+
+    const installationId =
+      typeof project.github?.installationId === 'number' ? project.github.installationId : undefined;
+    const installed = !!installationId;
     return reply.send({
       ok: true,
-      project: { _id: project._id, name: project.name },
-      github: project.github || {},
+      projectId,
+      installed,
+      github: { installationId },
       githubInstallUrl,
     });
   });
@@ -43,21 +52,6 @@ export default async function webappRoutes(app: FastifyInstance) {
   app.get('/api/github/install-url', { preHandler: app.telegramAuth }, async (_req, reply) => {
     if (!config.githubAppSlug) return reply.send({ ok: false, url: null, error: 'GITHUB_APP_SLUG not set' });
     return reply.send({ ok: true, url: `https://github.com/apps/${config.githubAppSlug}/installations/new` });
-  });
-
-  app.get('/api/github/callback', { preHandler: app.telegramAuth }, async (req, reply) => {
-    try {
-      const project = req.project!;
-      const installationId = Number((req.query as any)?.installation_id);
-      if (!installationId) return reply.code(400).send({ ok: false, error: 'installation_id required' });
-      await ProjectModel.updateOne(
-        { _id: project._id },
-        { $set: { github: { ...(project.github || {}), installationId } } },
-      );
-      return reply.send({ ok: true });
-    } catch (e: any) {
-      return reply.code(500).send({ ok: false, error: e.message || 'callback failed' });
-    }
   });
 
   app.post('/api/selftest', { preHandler: app.telegramAuth }, async (req, reply) => {

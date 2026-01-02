@@ -10,6 +10,7 @@ import githubAppWebhook from './routes/webhooks.github.app.js';
 import incidentsRoutes from './routes/incidents.js';
 import pulseRoutes from './routes/pulse.js';
 import webappRoutes from './routes/webapp.js';
+import githubAppCallbackRoutes from './routes/githubAppCallback.js';
 import healthRoutes from './routes/health.js';
 import webappStatic from './plugins/webappStatic.js';
 import telegramAuthPlugin from './plugins/telegramAuth.js';
@@ -36,6 +37,7 @@ export async function buildServer() {
   // Plugins (used by /webapp and mini-app /api/* routes)
   await fastify.register(telegramAuthPlugin);
   await fastify.register(webappStatic);
+  await fastify.register(githubAppCallbackRoutes);
 
   const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
   if (!noDb) {
