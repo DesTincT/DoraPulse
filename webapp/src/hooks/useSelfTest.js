@@ -21,5 +21,3 @@ export function useSelfTest(initData) {
 
   return { run, running, result, error };
 }
-
-

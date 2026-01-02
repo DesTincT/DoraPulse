@@ -22,8 +22,7 @@ export function VerifyRow({ running, result, onRun }) {
   const button = React.createElement(
     'button',
     {
-      className:
-        'btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50',
+      className: 'btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50',
       onClick: onRun,
       disabled: running,
     },
@@ -52,5 +51,3 @@ export function VerifyRow({ running, result, onRun }) {
     body,
   );
 }
-
-

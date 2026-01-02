@@ -4,23 +4,36 @@ import n from 'eslint-plugin-n';
 import promise from 'eslint-plugin-promise';
 import security from 'eslint-plugin-security';
 import prettier from 'eslint-config-prettier';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const tsconfigRootDir = path.dirname(fileURLToPath(import.meta.url));
+const tsFiles = ['**/*.ts', '**/*.tsx'];
 
 export default tseslint.config(
   {
     ignores: ['dist/**', 'node_modules/**', 'eslint.config.js', 'webapp/**'],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  ...tseslint.configs.stylistic,
   n.configs['flat/recommended'],
   promise.configs['flat/recommended'],
   security.configs.recommended,
   prettier,
+  // IMPORTANT: scope type-aware TypeScript rules to TS files only.
+  ...tseslint.configs.recommendedTypeChecked.map((config) => ({
+    ...config,
+    files: tsFiles,
+  })),
+  ...tseslint.configs.stylistic.map((config) => ({
+    ...config,
+    files: tsFiles,
+  })),
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: tsFiles,
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        tsconfigRootDir,
+        project: ['./tsconfig.json'],
       },
     },
     rules: {

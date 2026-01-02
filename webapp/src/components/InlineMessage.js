@@ -9,5 +9,3 @@ export function InlineMessage({ type = 'info', children }) {
         : 'text-sm text-base-content/70';
   return React.createElement('div', { className: cls }, children);
 }
-
-

@@ -56,8 +56,9 @@ function validateTelegramInitData(raw?: string): { ok: boolean; data?: TelegramI
 }
 
 export async function telegramAuth(req: FastifyRequest, reply: FastifyReply) {
-  // DEV-only bypass for local webapp preview
-  if (process.env.NODE_ENV !== 'production') {
+  // DEV-only bypass for local webapp preview (explicit opt-in)
+  const shouldDevBypass = process.env.NODE_ENV !== 'production' && isTrueish(process.env.DORA_DEV_BYPASS_TELEGRAM_AUTH);
+  if (shouldDevBypass) {
     (req as any).devBypass = true;
     const devProjectId = process.env.DORA_DEV_PROJECT_ID;
     if (devProjectId) {

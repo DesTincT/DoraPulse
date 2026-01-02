@@ -30,5 +30,3 @@ export function useMe(initData) {
 
   return { me, github, githubInstallUrl, reload: load, loading, error, setMe };
 }
-
-
