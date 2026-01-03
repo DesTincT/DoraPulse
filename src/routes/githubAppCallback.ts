@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { ProjectModel } from '../models/Project.js';
+import { verifyGithubInstallState } from '../services/githubInstallState.js';
 
 /**
  * GitHub App callback endpoint.
@@ -23,16 +24,38 @@ export default async function githubAppCallbackRoutes(app: FastifyInstance) {
       return reply.code(400).type('text/html; charset=utf-8').send('<h3>Missing state</h3>');
     }
 
-    // MVP: state is the Project accessKey (PAK-like stable key)
-    const project = await ProjectModel.findOne({ accessKey: state });
+    // Prefer signed state token (projectId + chatId); keep legacy accessKey fallback.
+    let project: any = null;
+    const verified = verifyGithubInstallState(state);
+    if (verified.ok) {
+      project = await ProjectModel.findOne({ _id: verified.payload.projectId, chatId: verified.payload.chatId });
+    } else {
+      project = await ProjectModel.findOne({ accessKey: state });
+    }
     if (!project?._id) {
       return reply.code(404).type('text/html; charset=utf-8').send('<h3>Unknown project</h3>');
     }
+
+    try {
+      req.log.info(
+        {
+          installationId,
+          setupAction: setupAction || 'n/a',
+          stateKind: verified.ok ? 'signed' : 'legacy',
+          stateVerify: verified.ok ? undefined : verified.reason,
+          projectId: String(project._id),
+          chatId: project.chatId,
+        },
+        'github app setup callback',
+      );
+    } catch {}
 
     await ProjectModel.updateOne(
       { _id: project._id },
       {
         $set: {
+          githubInstallationId: installationId,
+          githubInstalledAt: new Date(),
           'settings.github.installationId': installationId,
           'settings.github.updatedAt': new Date(),
           // keep legacy location for backwards compatibility
@@ -42,17 +65,8 @@ export default async function githubAppCallbackRoutes(app: FastifyInstance) {
       },
     );
 
-    const html = `
-      <div style="font-family:system-ui;padding:24px">
-        <h2>✅ GitHub App installed.</h2>
-        <p>You can return to Telegram and press Refresh.</p>
-        <p style="opacity:.6;font-size:12px">setup_action=${setupAction || 'n/a'}</p>
-      </div>
-      <script>
-        try { window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.close && window.Telegram.WebApp.close(); } catch {}
-      </script>
-    `;
-    return reply.type('text/html; charset=utf-8').send(html);
+    // Return user back to the Mini App (200 page). Avoid sending users to a blank callback page.
+    return reply.redirect('/webapp/', 302);
   }
 
   // New canonical endpoint (GitHub App "Setup URL")

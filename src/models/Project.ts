@@ -30,6 +30,10 @@ export interface Project extends Document {
   accessKey: string;
   settings: ProjectSettings;
   github?: ProjectGithub;
+  // Canonical GitHub App installation tracking (source of truth for the Mini App UI)
+  githubInstallationId?: number;
+  githubInstalledAt?: Date;
+  githubAccountLogin?: string;
 }
 
 const ProjectSchema = new Schema<Project>(
@@ -63,6 +67,9 @@ const ProjectSchema = new Schema<Project>(
       repos: { type: [String], required: false, default: undefined },
       updatedAt: { type: Date, required: false },
     },
+    githubInstallationId: { type: Number, required: false },
+    githubInstalledAt: { type: Date, required: false },
+    githubAccountLogin: { type: String, required: false },
   },
   {
     timestamps: false,

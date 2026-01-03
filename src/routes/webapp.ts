@@ -5,6 +5,7 @@ import { ProjectModel } from '../models/Project.js';
 import { EventModel } from '../models/Event.js';
 import { getWeekly } from '../services/metricsService.js';
 import { getLastIsoWeek } from '../utils.js';
+import { createGithubInstallState } from '../services/githubInstallState.js';
 
 export default async function webappRoutes(app: FastifyInstance) {
   // Telegram-authenticated API
@@ -12,28 +13,49 @@ export default async function webappRoutes(app: FastifyInstance) {
     const project = req.project!;
     const bypass = !!req.devBypass;
 
+    // Safe telemetry: initData length + telegram user id (never log full initData).
+    try {
+      req.log.info(
+        {
+          initDataLen: req.telegramInitDataInfo?.len ?? 0,
+          telegramUserId: req.telegramInitDataInfo?.userId,
+          chatId: req.telegramInitDataInfo?.chatId,
+          projectId: String((project as any)?._id),
+        },
+        'api/me',
+      );
+    } catch {}
+
     const baseInstallUrl = config.githubAppSlug
       ? `https://github.com/apps/${config.githubAppSlug}/installations/new`
       : bypass
         ? 'https://example.com/install'
         : null;
 
-    // GitHub App install URL MUST include state=<accessKey> so /github/app/setup can bind it.
+    // GitHub App install URL MUST include a signed state so /github/app/setup can bind it to a Project.
+    const state =
+      baseInstallUrl && (project as any)?._id && typeof (project as any)?.chatId === 'number'
+        ? createGithubInstallState({ projectId: String((project as any)._id), chatId: (project as any).chatId })
+        : null;
     const githubInstallUrl =
-      baseInstallUrl && project.accessKey
-        ? `${baseInstallUrl}?state=${encodeURIComponent(project.accessKey)}`
-        : baseInstallUrl;
+      baseInstallUrl && state ? `${baseInstallUrl}?state=${encodeURIComponent(state)}` : baseInstallUrl;
 
-    const installationId =
-      typeof project?.settings?.github?.installationId === 'number'
-        ? project.settings.github.installationId
-        : undefined;
+    const installationId: number | undefined =
+      typeof (project as any)?.githubInstallationId === 'number'
+        ? (project as any).githubInstallationId
+        : typeof project?.settings?.github?.installationId === 'number'
+          ? project.settings.github.installationId
+          : typeof (project as any)?.github?.installationId === 'number'
+            ? (project as any).github.installationId
+            : undefined;
+
+    const installed = !!installationId;
 
     return reply.send({
       ok: true,
       projectId: String(project._id),
-      installed: !!installationId,
-      github: { installationId },
+      installed,
+      github: { installed, installationId },
       githubInstallUrl,
     });
   });
@@ -48,12 +70,16 @@ export default async function webappRoutes(app: FastifyInstance) {
     const bypass = !!req.devBypass;
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
     if (noDb) {
+      const installationId =
+        typeof (project as any)?.githubInstallationId === 'number'
+          ? (project as any).githubInstallationId
+          : (project as any)?.settings?.github?.installationId;
       return reply.send({
         ok: true,
         checklist: {
           hasRecentEvents15m: false,
           hasWeeklyMetrics: false,
-          githubInstalled: !!project?.settings?.github?.installationId,
+          githubInstalled: !!installationId,
         },
         lastEventAt: null,
       });
@@ -68,12 +94,16 @@ export default async function webappRoutes(app: FastifyInstance) {
       (!recent || recent === 0) &&
       (!weekly || (typeof weekly === 'object' && Object.keys(weekly).length === 0))
     ) {
+      const installationId =
+        typeof (project as any)?.githubInstallationId === 'number'
+          ? (project as any).githubInstallationId
+          : (project as any)?.settings?.github?.installationId;
       return reply.send({
         ok: true,
         checklist: {
           hasRecentEvents15m: false,
           hasWeeklyMetrics: false,
-          githubInstalled: !!project?.settings?.github?.installationId,
+          githubInstalled: !!installationId,
         },
         lastEventAt: null,
       });
