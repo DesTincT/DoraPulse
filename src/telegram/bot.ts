@@ -149,7 +149,9 @@ export function initBotPolling() {
     if (isHttps(webAppUrl)) {
       await ctx.reply(
         uiText.openMiniAppLabel,
-        Markup.keyboard([[Markup.button.webApp(uiText.menu.openMiniApp, webAppUrl)]]).resize(),
+        Markup.inlineKeyboard([
+          Markup.button.webApp(uiText.menu.openMiniApp, webAppUrl),
+        ])
       );
     } else {
       await ctx.reply(`${uiText.webappNeedsHttps}\n${webAppUrl}`);
