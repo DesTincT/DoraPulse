@@ -4,6 +4,8 @@
  * @param {string} week - ISO week string in format "YYYY-Www", e.g., "2025-W49"
  * @returns {[Date, Date]} - An array with two Date objects: start (inclusive), end (exclusive)
  */
+import { getISOWeek, getISOWeekYear, startOfISOWeek, subWeeks } from 'date-fns';
+
 export function isoWeekRange(week: string) {
   // "2025-W49" -> [2025-12-01, 2025-12-08) UTC
   const [y, w] = week.split('-W').map(Number);
@@ -16,6 +18,19 @@ export function isoWeekRange(week: string) {
   const to = new Date(from);
   to.setUTCDate(from.getUTCDate() + 7);
   return [from, to] as const;
+}
+
+function asUtcForDateFns(date: Date): Date {
+  // date-fns ISO week helpers use the Date's local timezone.
+  // Shift the timestamp so "local time" == UTC time, making week boundaries stable across deployments.
+  return new Date(date.getTime() + date.getTimezoneOffset() * 60 * 1000);
+}
+
+export function isoWeekString(date: Date): string {
+  const d = asUtcForDateFns(date);
+  const y = getISOWeekYear(d);
+  const w = getISOWeek(d);
+  return `${y}-W${String(w).padStart(2, '0')}`;
 }
 
 /**
@@ -39,18 +54,11 @@ export function percentile(arr: number[], p: number) {
  * @returns {string} - ISO week string for the previous full week.
  */
 export function getLastIsoWeek(): string {
+  // "Last fully completed week" = previous ISO week (not the current, potentially partial week).
   const now = new Date();
-  // Move to last Monday
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  // Set to most recent Monday (including today if today is Monday)
-  d.setUTCDate(d.getUTCDate() - (d.getUTCDay() === 1 ? 7 : (d.getUTCDay() + 6) % 7));
-  // Now that we are at last Monday, use ISO week logic
-  const y = d.getUTCFullYear();
-  const ref = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  ref.setUTCDate(ref.getUTCDate() + 4 - (ref.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(ref.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((ref.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${y}-W${String(weekNo).padStart(2, '0')}`;
+  const startThisWeek = startOfISOWeek(asUtcForDateFns(now));
+  const startPrevWeek = subWeeks(startThisWeek, 1);
+  return isoWeekString(startPrevWeek);
 }
 
 export function fmtDuration(sec?: number) {
@@ -107,11 +115,5 @@ export function fmtWeekly(m: any) {
 }
 
 export function currentIsoWeek() {
-  const d = new Date();
-  const y = d.getUTCFullYear();
-  const tmp = new Date(Date.UTC(y, d.getUTCMonth(), d.getUTCDate()));
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-  const w = Math.ceil(((tmp.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${y}-W${String(w).padStart(2, '0')}`;
+  return isoWeekString(new Date());
 }
