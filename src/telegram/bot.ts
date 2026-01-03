@@ -102,7 +102,23 @@ export function initBotPolling() {
 
   // /help
   bot.command('help', async (ctx) => {
-    await ctx.reply(uiText.helpLines.join('\n'));
+    // Telegram MarkdownV2: keep formatting predictable, especially for code blocks.
+    const escapeMdV2 = (s: string) => s.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+
+    const commands = ['*Available commands:*', ...uiText.helpLines.slice(1).map(escapeMdV2)].join('\n');
+
+    const howToHeader = '*Enable deployment metrics DF/CFR:*';
+    const howToBody = uiText.helpDoraDeployHowToLines.map((line) => {
+      // Preserve inline code marked with backticks by escaping only outside of them.
+      // Simple approach: if a line contains backticks, we assume it’s intentional and keep it as-is.
+      return line.includes('`') ? line : escapeMdV2(line);
+    });
+    const howTo = [howToHeader, ...howToBody, '', '```yaml', uiText.helpDoraDeployWorkflowYaml.trimEnd(), '```'].join(
+      '\n',
+    );
+
+    await ctx.reply(commands, { parse_mode: 'MarkdownV2', link_preview_options: { is_disabled: true } });
+    await ctx.reply(howTo, { parse_mode: 'MarkdownV2', link_preview_options: { is_disabled: true } });
   });
 
   // /link — GitHub Webhook instruction
