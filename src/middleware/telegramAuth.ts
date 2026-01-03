@@ -92,6 +92,10 @@ function debugInitData(req: FastifyRequest) {
 }
 
 export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyReply) {
+  // Always attach safe initData telemetry (never store/log full initData).
+  const rawInitData = getInitData(req);
+  req.telegramInitDataInfo = { len: rawInitData.length };
+
   // DEV-only bypass for local webapp preview (explicit opt-in)
   const shouldDevBypass = process.env.NODE_ENV !== 'production' && isTrueish(process.env.DORA_DEV_BYPASS_TELEGRAM_AUTH);
   if (shouldDevBypass) {
@@ -142,7 +146,7 @@ export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyR
     return;
   }
 
-  const initData = getInitData(req);
+  const initData = rawInitData;
   const v = validateTelegramInitData(initData);
   if (!v.ok) {
     req.telegramAuthError = { reason: v.reason, message: v.message };
@@ -150,11 +154,14 @@ export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyR
   }
 
   const chatJson = v.data?.chat ? JSON.parse(v.data.chat) : null;
-  const chatId: number | undefined = chatJson?.id ?? (v.data?.user ? JSON.parse(v.data.user)?.id : undefined);
+  const userJson = v.data?.user ? JSON.parse(v.data.user) : null;
+  const chatId: number | undefined = chatJson?.id ?? userJson?.id;
   if (!chatId) {
     req.telegramAuthError = { reason: 'exception', message: 'chat id missing' };
     return;
   }
+  // For private chats, chat.id === user.id. We still log it as userId for easier debugging.
+  req.telegramInitDataInfo = { len: initData.length, userId: userJson?.id, chatId };
 
   let project = await ProjectModel.findOne({ chatId });
   if (!project) {

@@ -6,9 +6,9 @@ import { RepoModel } from '../models/Repo.js';
 import { randomBytes } from 'crypto';
 import { fmtWeekly, currentIsoWeek } from '../utils.js';
 import { uiText } from './uiText.js';
+import { canOpenMiniApp, getMiniAppUrl, miniAppInlineKeyboard, quickActionsKeyboard } from './botUi.js';
 
 const WEEK_DEFAULT = '2025-W49'; // можно динамически, но для демо — фикс
-const isHttps = (u?: string) => !!u && /^https:\/\//i.test(u);
 
 function parseWeekArg(text?: string) {
   // text: "/metrics 2025-W51" | "/metrics" | "/metrics@MyBot 2025-W51"
@@ -30,13 +30,10 @@ function parseWeekArg(text?: string) {
   return 'INVALID';
 }
 
-function mainMenu(webAppUrl?: string) {
-  const row1 = [Markup.button.text(uiText.menu.metrics), Markup.button.text(uiText.menu.digest)];
-  const row2 = [Markup.button.text(uiText.menu.pulse)];
-  if (isHttps(webAppUrl)) {
-    return Markup.keyboard([row1, row2, [Markup.button.webApp(uiText.menu.openMiniApp, webAppUrl!)]]).resize();
-  }
-  return Markup.keyboard([row1, row2]).resize();
+function mainMenu() {
+  // IMPORTANT: Telegram Desktop is unreliable with reply-keyboard WebApp buttons (often initDataLen=0).
+  // Keep quick actions on the reply keyboard, but send the Mini App as a separate INLINE WebApp button.
+  return quickActionsKeyboard();
 }
 
 async function fetchWeekly(projectId: string, week = WEEK_DEFAULT) {
@@ -92,9 +89,15 @@ export function initBotPolling() {
       );
     }
 
-    const webAppUrl = process.env.MINIAPP_URL || `${config.publicAppUrl}/webapp`;
     const startLines = uiText.startIntroLines.join('\n');
-    await ctx.reply(startLines, mainMenu(webAppUrl));
+    await ctx.reply(startLines, mainMenu());
+
+    const webAppUrl = getMiniAppUrl();
+    if (canOpenMiniApp(webAppUrl)) {
+      await ctx.reply(uiText.openMiniAppLabel, miniAppInlineKeyboard(webAppUrl));
+    } else {
+      await ctx.reply(`${uiText.webappNeedsHttps}\n${webAppUrl}`);
+    }
   });
 
   // /help
@@ -145,14 +148,9 @@ export function initBotPolling() {
 
   // /webapp — open Mini‑App button (if URL exists)
   bot.command('webapp', async (ctx) => {
-    const webAppUrl = process.env.MINIAPP_URL || `${config.publicAppUrl}/webapp`;
-    if (isHttps(webAppUrl)) {
-      await ctx.reply(
-        uiText.openMiniAppLabel,
-        Markup.inlineKeyboard([
-          Markup.button.webApp(uiText.menu.openMiniApp, webAppUrl),
-        ])
-      );
+    const webAppUrl = getMiniAppUrl();
+    if (canOpenMiniApp(webAppUrl)) {
+      await ctx.reply(uiText.openMiniAppLabel, miniAppInlineKeyboard(webAppUrl));
     } else {
       await ctx.reply(`${uiText.webappNeedsHttps}\n${webAppUrl}`);
     }

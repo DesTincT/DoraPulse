@@ -5,8 +5,8 @@ import path from 'node:path';
 /**
  * Serve the Telegram Mini App UI as static files under /webapp/*
  *
- * - GET /webapp      -> 302 redirect to /webapp/
- * - GET /webapp/     -> index.html
+ * - GET /webapp      -> index.html (200, no redirect; redirects can break Telegram initData)
+ * - GET /webapp/     -> index.html (200)
  * - GET /webapp/app.js, /webapp/src/... -> static assets
  */
 export default fp(async (app) => {
@@ -20,7 +20,8 @@ export default fp(async (app) => {
   });
 
   app.get('/webapp', async (_req, reply) => {
-    return reply.redirect('/webapp/', 302);
+    // IMPORTANT: Telegram WebView can lose initData if we redirect here.
+    return reply.sendFile('index.html');
   });
 
   // Ensure /webapp/ reliably serves HTML without accidentally sending an object payload.

@@ -61,6 +61,9 @@ export default async function githubAppWebhook(app: FastifyInstance) {
           { _id: project._id },
           {
             $set: {
+              githubInstallationId: installationId,
+              githubAccountLogin: accountLogin,
+              githubInstalledAt: new Date(),
               'settings.github.installationId': installationId,
               'settings.github.accountLogin': accountLogin,
               'settings.github.accountType': accountType,

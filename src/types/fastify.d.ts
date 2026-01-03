@@ -40,6 +40,11 @@ declare module 'fastify' {
     rawBody?: Buffer;
     devBypass?: boolean;
     project?: ProjectRef;
+    telegramInitDataInfo?: {
+      len: number;
+      userId?: number;
+      chatId?: number;
+    };
     telegramAuthError?: {
       reason: string;
       message: string;
