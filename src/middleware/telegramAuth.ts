@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { ProjectModel } from '../models/Project.js';
 import { config } from '../config.js';
+import type { AuthedProjectContext } from 'fastify';
 
 type TelegramValidationReason =
   | 'missing_init_data'
@@ -91,6 +92,49 @@ function debugInitData(req: FastifyRequest) {
   return { present: !!init, len: init.length, prefix };
 }
 
+function toProjectContext(input: any, devBypass: boolean): AuthedProjectContext {
+  const projectId = String(input?._id ?? 'dev');
+  const chatId = Number.isFinite(input?.chatId) ? Number(input.chatId) : 0;
+  const accessKey = typeof input?.accessKey === 'string' ? input.accessKey : undefined;
+
+  const installationId: number | undefined =
+    typeof input?.githubInstallationId === 'number'
+      ? input.githubInstallationId
+      : typeof input?.settings?.github?.installationId === 'number'
+        ? input.settings.github.installationId
+        : typeof input?.github?.installationId === 'number'
+          ? input.github.installationId
+          : undefined;
+
+  const accountLogin: string | undefined =
+    typeof input?.githubAccountLogin === 'string'
+      ? input.githubAccountLogin
+      : typeof input?.settings?.github?.accountLogin === 'string'
+        ? input.settings.github.accountLogin
+        : typeof input?.github?.accountLogin === 'string'
+          ? input.github.accountLogin
+          : undefined;
+
+  const prodEnvironments: string[] = Array.isArray(input?.settings?.prodEnvironments)
+    ? input.settings.prodEnvironments.map((x: any) => String(x)).filter(Boolean)
+    : [];
+
+  return {
+    projectId,
+    chatId,
+    accessKey,
+    devBypass,
+    github: {
+      installed: !!installationId,
+      installationId,
+      accountLogin,
+    },
+    settings: {
+      prodEnvironments,
+    },
+  };
+}
+
 export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyReply) {
   // Always attach safe initData telemetry (never store/log full initData).
   const rawInitData = getInitData(req);
@@ -105,31 +149,39 @@ export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyR
 
     // In DB-less dev mode, never touch Mongo; use a stable in-memory project.
     if (noDb) {
-      req.project = {
+      const devProject = {
         _id: devProjectId || 'dev',
         name: 'dev_project',
+        chatId: 0,
+        accessKey: devProjectId ? `dev-${devProjectId}` : 'dev',
         github: {},
         settings: {
           prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' },
           ltBaseline: 'pr_open',
           github: {},
+          prodEnvironments: ['production'],
         },
       };
+      req.project = toProjectContext(devProject, true);
       return;
     }
 
     if (devProjectId) {
       // Lightweight in-memory project reference (no DB required)
-      req.project = {
+      const devProject = {
         _id: devProjectId,
         name: 'dev_project',
+        chatId: 0,
+        accessKey: `dev-${devProjectId}`,
         github: {},
         settings: {
           prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' },
           ltBaseline: 'pr_open',
           github: {},
+          prodEnvironments: ['production'],
         },
       };
+      req.project = toProjectContext(devProject, true);
       return;
     }
     // Fallback: find or create a deterministic dev project in DB
@@ -142,7 +194,7 @@ export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyR
         settings: { prodRule: { branch: 'main', workflowNameRegex: 'deploy.*prod' }, ltBaseline: 'pr_open' },
       } as any).save();
     }
-    req.project = project;
+    req.project = toProjectContext(project, true);
     return;
   }
 
@@ -174,7 +226,7 @@ export async function telegramAuthOptional(req: FastifyRequest, _reply: FastifyR
     project = created;
   }
 
-  req.project = project;
+  req.project = toProjectContext(project, false);
 }
 
 export async function telegramAuth(req: FastifyRequest, reply: FastifyReply) {
