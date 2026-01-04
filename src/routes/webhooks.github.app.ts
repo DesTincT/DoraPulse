@@ -5,6 +5,8 @@ import { ProjectModel } from '../models/Project.js';
 import { RepoModel } from '../models/Repo.js';
 import { Types } from 'mongoose';
 import { EventModel } from '../models/Event.js';
+import { WebhookDeliveryModel } from '../models/WebhookDelivery.js';
+import { upsertPullRequest } from '../services/pullRequestService.js';
 import {
   fromPullRequest,
   fromWorkflowRun,
@@ -29,6 +31,7 @@ export default async function githubAppWebhook(app: FastifyInstance) {
       if (!ok) return reply.code(401).send({ error: 'invalid signature' });
 
       const eventName = String((req.headers['x-github-event'] ?? '') as string).toLowerCase();
+      const deliveryId = String((req.headers['x-github-delivery'] ?? '') as string);
       const payload = req.body as any;
 
       if (eventName === 'ping') {
@@ -46,8 +49,39 @@ export default async function githubAppWebhook(app: FastifyInstance) {
       const project = await ProjectModel.findOne({
         $or: [{ 'settings.github.installationId': installationId }, { 'github.installationId': installationId }],
       }).lean();
-      app.log.info({ eventName, installationId, matched: !!project?._id }, 'github app webhook received');
+      app.log.info({ eventName, deliveryId, installationId, matched: !!project?._id }, 'github app webhook received');
       if (!project?._id) return reply.code(202).send({ ok: true, ignored: true, reason: 'unknown_installation' });
+
+      // Delivery-level idempotency
+      if (deliveryId) {
+        const now = new Date();
+        const repoFullName: string | undefined = payload?.repository?.full_name;
+        const res: any = await WebhookDeliveryModel.updateOne(
+          { provider: 'github', deliveryId },
+          {
+            $setOnInsert: { provider: 'github', deliveryId, firstSeenAt: now },
+            $set: {
+              lastSeenAt: now,
+              projectId: project._id,
+              installationId,
+              repoFullName,
+              eventName: eventName || undefined,
+              status: 'processed',
+            },
+            $inc: { seenCount: 1 },
+          },
+          { upsert: true },
+        );
+        const inserted = !!(res?.upsertedCount || res?.upsertedId);
+        if (!inserted) {
+          await WebhookDeliveryModel.updateOne(
+            { provider: 'github', deliveryId },
+            { $set: { lastSeenAt: now, status: 'duplicate' } },
+          );
+          app.log.info({ deliveryId, eventName, installationId, projectId: String(project._id) }, 'duplicate delivery skipped');
+          return reply.send({ ok: true, duplicate: true });
+        }
+      }
 
       // Installation events: update linked repos/account metadata (MVP)
       if (eventName === 'installation' || eventName === 'installation_repositories') {
@@ -91,6 +125,11 @@ export default async function githubAppWebhook(app: FastifyInstance) {
 
       const events: NormalizedEvent[] = [];
       if (payload?.pull_request) {
+        try {
+          await upsertPullRequest(project._id as any, payload);
+        } catch (e: any) {
+          app.log.warn({ err: e?.message || e, deliveryId, projectId: String(project._id) }, 'pull request upsert failed');
+        }
         events.push(...fromPullRequest(payload, project));
       } else if (payload?.workflow_run) {
         events.push(...fromWorkflowRun(payload, project));
@@ -150,9 +189,24 @@ export default async function githubAppWebhook(app: FastifyInstance) {
 
       const res = await (EventModel as any).bulkWrite(ops, { ordered: false });
       const inserted = (res?.upsertedCount || 0) + (res?.insertedCount || 0);
+      if (deliveryId) {
+        await WebhookDeliveryModel.updateOne(
+          { provider: 'github', deliveryId },
+          { $set: { status: 'processed', processedAt: new Date() } },
+        );
+      }
       return reply.send({ ok: true, inserted });
     } catch (err: any) {
       req.log.error(err, 'github app webhook error');
+      try {
+        const deliveryId = String((req.headers['x-github-delivery'] ?? '') as string);
+        if (deliveryId) {
+          await WebhookDeliveryModel.updateOne(
+            { provider: 'github', deliveryId },
+            { $set: { status: 'failed', error: String(err?.message || err), processedAt: new Date() } },
+          );
+        }
+      } catch {}
       return reply.code(500).send({ ok: false, error: err.message });
     }
   });

@@ -5,7 +5,8 @@ import { EventModel } from '../models/Event.js';
 import { RepoModel } from '../models/Repo.js';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { isProdEnvironment, fromDeploymentStatus } from '../services/githubNormalizer.js';
+import { fromDeploymentStatus } from '../services/githubNormalizer.js';
+import { matchProdEnvironment } from '../services/prodDeployment.js';
 import { fetchCommitCommittedAt } from '../services/githubApi.js';
 import { CommitCacheModel } from '../models/CommitCache.js';
 
@@ -75,7 +76,7 @@ export default async function adminDev(app: FastifyInstance) {
     const ok = fromDeploymentStatus(okPayload, project);
     const fail = fromDeploymentStatus(failPayload, project);
     const checks = {
-      isProdCaseInsensitive: isProdEnvironment('yAnDeX cLoUd', project),
+      isProdCaseInsensitive: matchProdEnvironment('yAnDeX cLoUd', project.settings),
       okCount: ok.length,
       failCount: fail.length,
       okType: ok[0]?.type,
