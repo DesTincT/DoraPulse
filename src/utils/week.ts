@@ -59,5 +59,3 @@ export function getPreviousWeekKey(weekKey: string): string {
   // one millisecond before this week starts is guaranteed to be in the previous ISO week
   return getIsoWeekKey(new Date(from.getTime() - 1));
 }
-
-

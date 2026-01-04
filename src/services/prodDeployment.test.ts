@@ -32,10 +32,7 @@ test('isProdDeployment: requires deployment_status success + env match', () => {
   assert.equal(isProdDeployment(payload, {}), true);
 
   assert.equal(
-    isProdDeployment(
-      { deployment: { environment: 'production' }, deployment_status: { state: 'failure' } },
-      {},
-    ),
+    isProdDeployment({ deployment: { environment: 'production' }, deployment_status: { state: 'failure' } }, {}),
     false,
   );
   assert.equal(
@@ -43,5 +40,3 @@ test('isProdDeployment: requires deployment_status success + env match', () => {
     false,
   );
 });
-
-

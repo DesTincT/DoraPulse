@@ -127,7 +127,10 @@ export default async function githubWebhook(app: FastifyInstance) {
         try {
           await upsertPullRequest(project._id as any, payload);
         } catch (e: any) {
-          app.log.warn({ err: e?.message || e, deliveryId, projectId: String(project._id) }, 'pull request upsert failed');
+          app.log.warn(
+            { err: e?.message || e, deliveryId, projectId: String(project._id) },
+            'pull request upsert failed',
+          );
         }
       }
 

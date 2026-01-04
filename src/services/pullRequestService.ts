@@ -87,5 +87,3 @@ export async function upsertPullRequest(projectId: Types.ObjectId, payload: any)
 
   return c;
 }
-
-

@@ -59,5 +59,3 @@ test('GET /projects/:projectId/selftest returns diagnostics and required fields'
   assert.ok(body.dataPresence && typeof body.dataPresence.prsMergedInWeek === 'number');
   assert.ok(Array.isArray(body.diagnosticReasons));
 });
-
-

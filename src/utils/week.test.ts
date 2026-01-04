@@ -28,5 +28,3 @@ test('getLatestCompleteWeekKey: returns previous week until Sunday is complete (
   // Mon Jan 5, 2026 means 2026-W01 has completed => latest complete is 2026-W01
   assert.equal(getLatestCompleteWeekKey(new Date('2026-01-05T00:00:00Z')), '2026-W01');
 });
-
-

@@ -15,13 +15,13 @@ This package (`apps/api`) contains:
 
 ## Run locally
 
-1) Install deps
+1. Install deps
 
 ```bash
 npm install
 ```
 
-2) Create `.env` (or use `prod.env` as a template) and set at least:
+2. Create `.env` (or use `prod.env` as a template) and set at least:
 
 - `PORT`
 - `MONGO_URI` (unless using DB-less mode)
@@ -31,7 +31,7 @@ npm install
 - `PAK_SALT`
 - `TIMEZONE`
 
-3) Start dev server
+3. Start dev server
 
 ```bash
 npm run dev
@@ -52,7 +52,7 @@ The Mini App must be opened **from Telegram** to provide `initData` (Telegram We
 
 To preview the UI in a normal browser without Telegram:
 
-1) Start the dev server with DB-less mode and auth bypass.
+1. Start the dev server with DB-less mode and auth bypass.
 
 PowerShell:
 
@@ -62,7 +62,7 @@ $env:DORA_DEV_BYPASS_TELEGRAM_AUTH="true"
 npm run dev
 ```
 
-2) Open:
+2. Open:
 
 ```bash
 http://localhost:8080/webapp/
@@ -128,15 +128,15 @@ name: Deploy
 
 on:
   push:
-    branches: ["main"]  # your_choice
+    branches: ['main'] # your_choice
 
 concurrency:
-  group: deploy-main        # your_choice
+  group: deploy-main # your_choice
   cancel-in-progress: true
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest  # your_choice
+    runs-on: ubuntu-latest # your_choice
 
     # Required so GitHub allows creating deployments + setting statuses
     permissions:
@@ -189,8 +189,8 @@ If you don’t use `production` as the environment name, replace it with your en
 
 ### 3) Verify
 
-1) Merge a PR to `main` (or push to `main`)
-2) The workflow runs and emits `deployment_status` events
-3) Dora Pulse bot starts showing:
+1. Merge a PR to `main` (or push to `main`)
+2. The workflow runs and emits `deployment_status` events
+3. Dora Pulse bot starts showing:
    - **Deployment Frequency (DF)**
    - **Change Failure Rate (CFR)**

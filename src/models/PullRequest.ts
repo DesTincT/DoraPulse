@@ -41,5 +41,3 @@ PullRequestSchema.index({ projectId: 1, updatedAt: -1 });
 
 export const PullRequestModel: Model<PullRequest> =
   mongoose.models.PullRequest || mongoose.model<PullRequest>('PullRequest', PullRequestSchema);
-
-

@@ -78,7 +78,10 @@ export default async function githubAppWebhook(app: FastifyInstance) {
             { provider: 'github', deliveryId },
             { $set: { lastSeenAt: now, status: 'duplicate' } },
           );
-          app.log.info({ deliveryId, eventName, installationId, projectId: String(project._id) }, 'duplicate delivery skipped');
+          app.log.info(
+            { deliveryId, eventName, installationId, projectId: String(project._id) },
+            'duplicate delivery skipped',
+          );
           return reply.send({ ok: true, duplicate: true });
         }
       }
@@ -128,7 +131,10 @@ export default async function githubAppWebhook(app: FastifyInstance) {
         try {
           await upsertPullRequest(project._id as any, payload);
         } catch (e: any) {
-          app.log.warn({ err: e?.message || e, deliveryId, projectId: String(project._id) }, 'pull request upsert failed');
+          app.log.warn(
+            { err: e?.message || e, deliveryId, projectId: String(project._id) },
+            'pull request upsert failed',
+          );
         }
         events.push(...fromPullRequest(payload, project));
       } else if (payload?.workflow_run) {
