@@ -38,5 +38,3 @@ WebhookDeliverySchema.index({ projectId: 1, lastSeenAt: -1 });
 
 export const WebhookDeliveryModel: Model<WebhookDelivery> =
   mongoose.models.WebhookDelivery || mongoose.model<WebhookDelivery>('WebhookDelivery', WebhookDeliverySchema);
-
-

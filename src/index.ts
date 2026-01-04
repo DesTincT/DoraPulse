@@ -19,7 +19,12 @@ import { pathToFileURL } from 'url';
 
 const PORT = Number(process.env.PORT ?? 8080);
 
-export async function buildServer(opts?: { mongoUri?: string; noDb?: boolean; logger?: boolean; disableCron?: boolean }) {
+export async function buildServer(opts?: {
+  mongoUri?: string;
+  noDb?: boolean;
+  logger?: boolean;
+  disableCron?: boolean;
+}) {
   const isTest = process.env.NODE_ENV === 'test';
   const fastify = Fastify({ logger: opts?.logger ?? (isTest ? false : true) });
 

@@ -54,11 +54,19 @@ export interface ProjectSelftestResult {
   diagnosticReasons: DiagnosticReason[];
 }
 
-function toIso(d: Date | null | undefined): string | null {
+function toIso(d: unknown): string | null {
   if (!d) return null;
-  const x = new Date(d);
+  const x = new Date(d as any);
   if (Number.isNaN(+x)) return null;
   return x.toISOString();
+}
+
+interface TsOnly {
+  ts: Date;
+}
+interface DeployTs {
+  ts: Date;
+  meta?: { deploymentEnvironment?: string };
 }
 
 export async function computeProjectSelftest(projectId: string, weekParam?: string): Promise<ProjectSelftestResult> {
@@ -80,7 +88,7 @@ export async function computeProjectSelftest(projectId: string, weekParam?: stri
   const lastDelivery = await WebhookDeliveryModel.findOne({ provider: 'github', projectId: pid })
     .sort({ lastSeenAt: -1 })
     .select('lastSeenAt')
-    .lean();
+    .lean<{ lastSeenAt: Date }>();
 
   const [webhooks15m, webhooks24h, duplicates15m, duplicates24h, failures15m, failures24h] = await Promise.all([
     WebhookDeliveryModel.countDocuments({ provider: 'github', projectId: pid, lastSeenAt: { $gte: since15m } }),
@@ -151,12 +159,18 @@ export async function computeProjectSelftest(projectId: string, weekParam?: stri
     .lean();
 
   const matched = deployCandidates.filter((e: any) =>
-    matchProdEnvironment(typeof e?.meta?.deploymentEnvironment === 'string' ? e.meta.deploymentEnvironment : undefined, settings),
+    matchProdEnvironment(
+      typeof e?.meta?.deploymentEnvironment === 'string' ? e.meta.deploymentEnvironment : undefined,
+      settings,
+    ),
   );
   const deploysInWeekTotal = matched.length;
   const deploysInWeekProd = matched.filter((e: any) => e.type === 'deploy_succeeded').length;
 
-  const lastMerged = await EventModel.findOne({ projectId: pid, type: 'pr_merged' }).sort({ ts: -1 }).select('ts').lean();
+  const lastMerged = await EventModel.findOne({ projectId: pid, type: 'pr_merged' })
+    .sort({ ts: -1 })
+    .select('ts')
+    .lean<TsOnly>();
   const lastProdDeploy = await EventModel.findOne({
     projectId: pid,
     type: 'deploy_succeeded',
@@ -164,23 +178,23 @@ export async function computeProjectSelftest(projectId: string, weekParam?: stri
   })
     .sort({ ts: -1 })
     .select('ts meta.deploymentEnvironment')
-    .lean();
+    .lean<DeployTs>();
   const lastProdDeployMatched =
     lastProdDeploy &&
     matchProdEnvironment(
-      typeof (lastProdDeploy as any)?.meta?.deploymentEnvironment === 'string'
-        ? (lastProdDeploy as any).meta.deploymentEnvironment
+      typeof lastProdDeploy?.meta?.deploymentEnvironment === 'string'
+        ? lastProdDeploy.meta.deploymentEnvironment
         : undefined,
       settings,
     )
-      ? (lastProdDeploy as any)
+      ? lastProdDeploy
       : null;
 
   // Diagnostics
   const diagnosticReasons: DiagnosticReason[] = [];
 
-  const lastWebhookAt = toIso(lastDelivery?.lastSeenAt as any);
-  if (!lastWebhookAt || (lastDelivery?.lastSeenAt && +new Date(lastDelivery.lastSeenAt as any) < +since24h)) {
+  const lastWebhookAt = toIso(lastDelivery?.lastSeenAt);
+  if (!lastWebhookAt || (lastDelivery?.lastSeenAt && +new Date(lastDelivery.lastSeenAt) < +since24h)) {
     diagnosticReasons.push({
       code: 'NO_WEBHOOKS_RECENT',
       severity: 'error',
@@ -275,12 +289,10 @@ export async function computeProjectSelftest(projectId: string, weekParam?: stri
       prsMergedInWeek,
       deploysInWeekTotal,
       deploysInWeekProd,
-      lastMergedPrAt: toIso(lastMerged?.ts as any),
-      lastProdDeployAt: toIso(lastProdDeployMatched?.ts as any),
+      lastMergedPrAt: toIso(lastMerged?.ts),
+      lastProdDeployAt: toIso(lastProdDeployMatched?.ts),
       deployStatusEventsInWeek,
     },
     diagnosticReasons,
   };
 }
-
-

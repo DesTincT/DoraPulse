@@ -228,7 +228,9 @@ export function initBotPolling() {
     const week = getLatestCompleteWeekKey(new Date());
     let st: any = null;
     try {
-      const res = await fetch(`${config.publicAppUrl}/projects/${String(p._id)}/selftest?week=${encodeURIComponent(week)}`);
+      const res = await fetch(
+        `${config.publicAppUrl}/projects/${String(p._id)}/selftest?week=${encodeURIComponent(week)}`,
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       st = await res.json();
     } catch {
@@ -240,7 +242,10 @@ export function initBotPolling() {
     }
 
     const reasons: any[] = Array.isArray(st.diagnosticReasons) ? st.diagnosticReasons : [];
-    const top = reasons.slice(0, 2).map((r) => `- ${r.code}: ${r.message}`).join('\n');
+    const top = reasons
+      .slice(0, 2)
+      .map((r) => `- ${r.code}: ${r.message}`)
+      .join('\n');
     const selftestUrl = `${config.publicAppUrl}/projects/${String(p._id)}/selftest?week=${encodeURIComponent(week)}`;
     const summary = [
       `🧪 Self-test (week ${st.weekKey})`,

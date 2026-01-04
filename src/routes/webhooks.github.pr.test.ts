@@ -48,13 +48,17 @@ test('webhooks/github: PR model upsert + merged event domain-dedup', async (t) =
   });
   await RepoModel.create({ projectId: project._id, owner: 'acme', name: 'checkout', defaultBranch: 'main' });
 
-  const opened = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'fixtures', 'pull_request_opened.json'), 'utf8'));
+  const opened = JSON.parse(
+    fs.readFileSync(path.resolve(process.cwd(), 'fixtures', 'pull_request_opened.json'), 'utf8'),
+  );
   const closedNotMerged = JSON.parse(
     fs.readFileSync(path.resolve(process.cwd(), 'fixtures', 'pull_request_closed_not_merged.json'), 'utf8'),
   );
-  const merged = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'fixtures', 'pull_request_merged.json'), 'utf8'));
+  const merged = JSON.parse(
+    fs.readFileSync(path.resolve(process.cwd(), 'fixtures', 'pull_request_merged.json'), 'utf8'),
+  );
 
-  const baseHeaders = { 'content-type': 'application/json', 'x-github-event': 'pull_request' } as const;
+  const baseHeaders = { 'content-type': 'application/json', 'x-github-event': 'pull_request' };
 
   // Opened
   const r1 = await fastify.inject({
@@ -66,9 +70,9 @@ test('webhooks/github: PR model upsert + merged event domain-dedup', async (t) =
   assert.equal(r1.statusCode, 200);
   let prDoc = await PullRequestModel.findOne({ projectId: project._id, pullRequestId: 9000001 }).lean();
   assert.ok(prDoc);
-  assert.equal(prDoc!.pullRequestNumber, 101);
-  assert.equal(prDoc!.repoFullName, 'acme/checkout');
-  assert.equal(prDoc!.state, 'open');
+  assert.equal(prDoc.pullRequestNumber, 101);
+  assert.equal(prDoc.repoFullName, 'acme/checkout');
+  assert.equal(prDoc.state, 'open');
 
   // Closed but not merged: updates PR doc, no pr_merged event emitted
   const r2 = await fastify.inject({
@@ -93,8 +97,8 @@ test('webhooks/github: PR model upsert + merged event domain-dedup', async (t) =
   assert.equal(mergedEventsAfter3, 1);
   prDoc = await PullRequestModel.findOne({ projectId: project._id, pullRequestId: 9000001 }).lean();
   assert.ok(prDoc);
-  assert.equal(prDoc!.state, 'merged');
-  assert.ok(prDoc!.mergedAt);
+  assert.equal(prDoc.state, 'merged');
+  assert.ok(prDoc.mergedAt);
 
   // Same merged payload again, different delivery => should NOT double-count (domain dedupKey)
   const r4 = await fastify.inject({
@@ -107,5 +111,3 @@ test('webhooks/github: PR model upsert + merged event domain-dedup', async (t) =
   const mergedEventsAfter4 = await EventModel.countDocuments({ projectId: project._id, type: 'pr_merged' });
   assert.equal(mergedEventsAfter4, 1);
 });
-
-

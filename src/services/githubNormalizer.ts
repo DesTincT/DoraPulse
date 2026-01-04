@@ -109,7 +109,9 @@ function fromPullRequest(payload: any, project: any): NormalizedEvent[] {
         repoFullName,
         pullRequestId: prId,
         pullRequestNumber: prNumber,
-        createdAt: payload.pull_request.created_at ? new Date(payload.pull_request.created_at).toISOString() : undefined,
+        createdAt: payload.pull_request.created_at
+          ? new Date(payload.pull_request.created_at).toISOString()
+          : undefined,
         mergedAt: mergedAt ? new Date(mergedAt).toISOString() : undefined,
         closedAt: payload.pull_request.closed_at ? new Date(payload.pull_request.closed_at).toISOString() : undefined,
         baseBranch: payload.pull_request.base && payload.pull_request.base.ref,

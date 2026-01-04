@@ -33,7 +33,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         tsconfigRootDir,
-        project: ['./tsconfig.json'],
+        project: ['./tsconfig.eslint.json'],
       },
     },
     rules: {
@@ -54,6 +54,14 @@ export default tseslint.config(
       'n/no-process-exit': 'off',
       'n/no-unsupported-features/node-builtins': 'off',
       'no-empty': 'off',
+    },
+  },
+  // Test files live under src/ for now; allow dev-only deps and loosen import checks.
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts'],
+    rules: {
+      'n/no-unpublished-import': 'off',
+      'n/no-missing-import': 'off',
     },
   },
 );

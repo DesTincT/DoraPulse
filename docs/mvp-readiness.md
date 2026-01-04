@@ -152,5 +152,3 @@ Common diagnostic codes:
   ]
 }
 ```
-
-

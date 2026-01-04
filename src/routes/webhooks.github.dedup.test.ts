@@ -57,7 +57,7 @@ test('webhooks/github: delivery idempotency (same X-GitHub-Delivery twice => sec
     'content-type': 'application/json',
     'x-github-event': 'deployment_status',
     'x-github-delivery': 'd-123',
-  } as const;
+  };
 
   const r1 = await fastify.inject({
     method: 'POST',
@@ -84,8 +84,8 @@ test('webhooks/github: delivery idempotency (same X-GitHub-Delivery twice => sec
 
   const delivery = await WebhookDeliveryModel.findOne({ provider: 'github', deliveryId: 'd-123' }).lean();
   assert.ok(delivery);
-  assert.equal(delivery!.seenCount, 2);
-  assert.equal(delivery!.status, 'duplicate');
+  assert.equal(delivery.seenCount, 2);
+  assert.equal(delivery.status, 'duplicate');
 });
 
 test('webhooks/github: domain dedup (same deployment_status, different deliveries => no double-count)', async (t) => {
@@ -124,7 +124,7 @@ test('webhooks/github: domain dedup (same deployment_status, different deliverie
   const baseHeaders = {
     'content-type': 'application/json',
     'x-github-event': 'deployment_status',
-  } as const;
+  };
 
   const r1 = await fastify.inject({
     method: 'POST',
@@ -145,5 +145,3 @@ test('webhooks/github: domain dedup (same deployment_status, different deliverie
   const events = await EventModel.countDocuments({ projectId: project._id });
   assert.equal(events, 1);
 });
-
-
