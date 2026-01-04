@@ -55,8 +55,8 @@ export function initBotPolling() {
   const bot = new Telegraf(config.botToken);
 
   // Commands menu
-  bot.telegram
-    .setMyCommands([
+  async function bootstrapCommands(bot: Telegraf) {
+    const commandsEn = [
       { command: 'start', description: 'Start and link a project' },
       { command: 'help', description: 'Help' },
       { command: 'link', description: 'GitHub webhook instructions' },
@@ -64,9 +64,45 @@ export function initBotPolling() {
       { command: 'verify', description: 'Why are metrics zero? (self-test)' },
       { command: 'digest', description: 'Send weekly digest' },
       { command: 'pulse', description: 'DevEx survey' },
-      { command: 'webapp', description: 'Open Mini‑App' },
-    ])
-    .catch(() => {});
+      { command: 'webapp', description: 'Open Mini-App' },
+    ];
+    const commandsRu = [
+      { command: 'start', description: 'Старт и привязка проекта' },
+      { command: 'help', description: 'Помощь' },
+      { command: 'link', description: 'Инструкция по GitHub webhook' },
+      { command: 'metrics', description: 'Метрики за неделю' },
+      { command: 'verify', description: 'Почему нули? (самопроверка)' },
+      { command: 'digest', description: 'Еженедельный дайджест' },
+      { command: 'pulse', description: 'Опрос DevEx' },
+      { command: 'webapp', description: 'Открыть мини‑приложение' },
+    ];
+
+    const scopes: ({ type: 'all_private_chats' | 'all_group_chats' } | undefined)[] = [
+      undefined, // default scope
+      { type: 'all_private_chats' },
+      { type: 'all_group_chats' }, // optional but useful for “Menu” in groups
+    ];
+
+    // 1) Default language
+    for (const scope of scopes) {
+      const opts = scope ? ({ scope } as any) : undefined;
+      await bot.telegram.deleteMyCommands(opts);
+      await bot.telegram.setMyCommands(commandsEn, opts);
+      console.log('[bot] commands set', { scope: scope?.type ?? 'default', lang: 'default' });
+    }
+
+    // 2) Russian locale
+    for (const scope of scopes) {
+      const opts = { ...(scope ? { scope } : {}), language_code: 'ru' } as any;
+      await bot.telegram.deleteMyCommands(opts);
+      await bot.telegram.setMyCommands(commandsRu, opts);
+      console.log('[bot] commands set', { scope: scope?.type ?? 'default', lang: 'ru' });
+    }
+
+    // Ensure the left “Menu” button shows commands instead of being empty.
+    await bot.telegram.setChatMenuButton({ menu_button: { type: 'commands' } } as any);
+  }
+  
 
   // /start — find/create project and show menu
   bot.start(async (ctx) => {
@@ -281,8 +317,16 @@ export function initBotPolling() {
     console.error('Telegraf error on update', ctx.update);
   });
 
-  // Запуск
-  bot.launch().then(() => console.log('[bot] launched (polling + UI)'));
-  process.once('SIGINT', () => bot.stop('SIGINT'));
-  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  async function startBot() {
+    await bootstrapCommands(bot);
+    await bot.launch();
+    console.log('[bot] launched (polling + UI)');
+    process.once('SIGINT', () => bot.stop('SIGINT'));
+    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  }
+
+  void startBot().catch((err) => {
+    console.error('[bot] fatal startup error', err);
+    process.exit(1);
+  });
 }
