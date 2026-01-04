@@ -1,3 +1,5 @@
+import { matchProdEnvironment } from './prodDeployment.js';
+
 interface PrRepoMeta {
   prNumber?: number;
   repoId?: string;
@@ -44,8 +46,18 @@ function pickPrAndRepo(payload: any): PrRepoMeta {
 
 function fromPullRequest(payload: any, project: any): NormalizedEvent[] {
   const events: NormalizedEvent[] = [];
+  const pr = payload?.pull_request;
+  const prId: number | undefined = typeof pr?.id === 'number' ? pr.id : undefined;
+  const prNumber: number | undefined =
+    typeof payload?.number === 'number' ? payload.number : typeof pr?.number === 'number' ? pr.number : undefined;
+  const repoFullName: string | undefined =
+    payload?.repository?.full_name ||
+    (payload?.repository?.owner?.login && payload?.repository?.name
+      ? `${payload.repository.owner.login}/${payload.repository.name}`
+      : undefined);
   // PR Opened event
   if (payload.action === 'opened' && payload.pull_request) {
+    const createdAt = payload.pull_request.created_at;
     events.push({
       type: 'pr_open',
       ts: new Date(payload.pull_request.created_at).getTime(),
@@ -53,8 +65,23 @@ function fromPullRequest(payload: any, project: any): NormalizedEvent[] {
         branch: payload.pull_request.base && payload.pull_request.base.ref,
         sha: payload.pull_request.head && payload.pull_request.head.sha,
         bodyPreview: payload.pull_request.body ? payload.pull_request.body.slice(0, 300) : undefined,
+        installationId: typeof payload?.installation?.id === 'number' ? payload.installation.id : undefined,
+        repoFullName,
+        pullRequestId: prId,
+        pullRequestNumber: prNumber,
+        createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
+        baseBranch: payload.pull_request.base && payload.pull_request.base.ref,
+        headBranch: payload.pull_request.head && payload.pull_request.head.ref,
+        url: payload.pull_request.html_url || payload.pull_request.url || undefined,
+        state: payload.pull_request.state || undefined,
         ...pickPrAndRepo(payload),
       },
+      dedupKey:
+        repoFullName && prId != null && createdAt
+          ? `gh:pr_open:${repoFullName}:${String(prId)}:${String(createdAt)}`
+          : repoFullName && prNumber != null && createdAt
+            ? `gh:pr_open:${repoFullName}:number:${String(prNumber)}:${String(createdAt)}`
+            : undefined,
     });
   }
   // PR Merged event (and into prod branch)
@@ -65,6 +92,7 @@ function fromPullRequest(payload: any, project: any): NormalizedEvent[] {
     payload.pull_request.base &&
     payload.pull_request.base.ref === project.settings?.prodRule?.branch
   ) {
+    const mergedAt = payload.pull_request.merged_at || payload.pull_request.closed_at;
     events.push({
       // use canonical name; keep type union compatible with legacy 'pr_merge'
       type: 'pr_merged',
@@ -77,8 +105,25 @@ function fromPullRequest(payload: any, project: any): NormalizedEvent[] {
           undefined,
         bodyPreview: payload.pull_request.body ? payload.pull_request.body.slice(0, 300) : undefined,
         prCreatedAt: payload.pull_request.created_at ? new Date(payload.pull_request.created_at).getTime() : undefined,
+        installationId: typeof payload?.installation?.id === 'number' ? payload.installation.id : undefined,
+        repoFullName,
+        pullRequestId: prId,
+        pullRequestNumber: prNumber,
+        createdAt: payload.pull_request.created_at ? new Date(payload.pull_request.created_at).toISOString() : undefined,
+        mergedAt: mergedAt ? new Date(mergedAt).toISOString() : undefined,
+        closedAt: payload.pull_request.closed_at ? new Date(payload.pull_request.closed_at).toISOString() : undefined,
+        baseBranch: payload.pull_request.base && payload.pull_request.base.ref,
+        headBranch: payload.pull_request.head && payload.pull_request.head.ref,
+        url: payload.pull_request.html_url || payload.pull_request.url || undefined,
+        state: 'merged',
         ...pickPrAndRepo(payload),
       },
+      dedupKey:
+        repoFullName && prId != null && mergedAt
+          ? `gh:pr_merged:${repoFullName}:${String(prId)}:${String(mergedAt)}`
+          : repoFullName && prNumber != null && mergedAt
+            ? `gh:pr_merged:${repoFullName}:number:${String(prNumber)}:${String(mergedAt)}`
+            : undefined,
     });
   }
   return events;
@@ -134,15 +179,6 @@ function fromPush(payload: any, project: any): NormalizedEvent[] {
 
 export type { NormalizedEvent };
 
-function isProdEnvironment(name: string | undefined, project: any): boolean {
-  if (!name || typeof name !== 'string') return false;
-  const defaults = ['production', 'prod', 'yandex cloud'];
-  const custom: string[] | undefined = project?.settings?.prodEnvironments;
-  const list = Array.isArray(custom) && custom.length ? custom : defaults;
-  const n = name.toLowerCase();
-  return list.some((x) => String(x).toLowerCase() === n);
-}
-
 function fromDeploymentStatus(payload: any, project: any): NormalizedEvent[] {
   const events: NormalizedEvent[] = [];
   const dep = payload?.deployment;
@@ -151,7 +187,8 @@ function fromDeploymentStatus(payload: any, project: any): NormalizedEvent[] {
   if (!dep || !status) return events;
 
   const envName: string | undefined = dep.environment;
-  if (!isProdEnvironment(envName, project)) return events;
+  if (!envName || typeof envName !== 'string') return events;
+  const isProdEnv = matchProdEnvironment(envName, project?.settings);
 
   const state: string = String(status.state || '').toLowerCase();
   if (!['success', 'failure', 'error'].includes(state)) return events;
@@ -174,7 +211,7 @@ function fromDeploymentStatus(payload: any, project: any): NormalizedEvent[] {
     type,
     ts,
     meta: {
-      env: 'prod',
+      env: isProdEnv ? 'prod' : undefined,
       sha: dep.sha,
       repoFullName,
       deploymentEnvironment: envName,
@@ -182,14 +219,17 @@ function fromDeploymentStatus(payload: any, project: any): NormalizedEvent[] {
       statusId: status.id,
       url: bestUrl,
     },
-    dedupKey: status.id
-      ? `gh:deployment_status:${status.id}`
-      : dep.id && createdAt
-        ? `gh:deployment:${dep.id}:${state}:${createdAt}`
-        : undefined,
+    dedupKey:
+      repoFullName && dep.id != null && status.id != null
+        ? `gh:deployment_status:${repoFullName}:${String(dep.id)}:${String(status.id)}`
+        : status.id != null
+          ? `gh:deployment_status:${String(status.id)}`
+          : dep.id && createdAt
+            ? `gh:deployment:${String(dep.id)}:${state}:${createdAt}`
+            : undefined,
   };
   events.push(ev);
   return events;
 }
 
-export { fromPullRequest, fromWorkflowRun, fromPush, fromDeploymentStatus, isProdEnvironment };
+export { fromPullRequest, fromWorkflowRun, fromPush, fromDeploymentStatus };

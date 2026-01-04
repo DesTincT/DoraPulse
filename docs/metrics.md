@@ -37,3 +37,14 @@ Weekly text shows:
 
 - Production deploy events must carry `meta.env = "prod"` and `meta.sha` (or `meta.shas`) plus `meta.repoFullName`.
 - Commit timestamps are fetched from GitHub (`GET /repos/{owner}/{repo}/commits/{sha}`) and cached in Mongo (`Commit` collection) to avoid repeated lookups.
+
+## Production deployment rule (DF/CFR)
+
+Deployment metrics are derived from **GitHub `deployment_status` webhooks**.
+
+- **Eligible deploy events**: only `deployment_status` payloads where `deployment.environment` is present.
+- **Production environment match**:
+  - Default: `["prod", "production"]` (case-insensitive).
+  - Override per project: `project.settings.prodEnvironments` can be a list of strings and/or regex strings (e.g. `"/^prod-.*$/i"`).
+- **Deployment Frequency (DF)**: counts only **successful** (`state=success`) deployments that match the production environment rule.
+- **Change Failure Rate (CFR)**: uses matched production deployments; failures include `state=failure` and `state=error`.

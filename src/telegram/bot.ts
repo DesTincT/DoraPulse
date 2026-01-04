@@ -4,11 +4,10 @@ import { config } from '../config.js';
 import { ProjectModel } from '../models/Project.js';
 import { RepoModel } from '../models/Repo.js';
 import { randomBytes } from 'crypto';
-import { fmtWeekly, currentIsoWeek } from '../utils.js';
+import { fmtWeekly } from '../utils.js';
+import { getLatestCompleteWeekKey, getPreviousWeekKey } from '../utils/week.js';
 import { uiText } from './uiText.js';
 import { canOpenMiniApp, getMiniAppUrl, miniAppInlineKeyboard, quickActionsKeyboard } from './botUi.js';
-
-const WEEK_DEFAULT = '2025-W49'; // можно динамически, но для демо — фикс
 
 function parseWeekArg(text?: string) {
   // text: "/metrics 2025-W51" | "/metrics" | "/metrics@MyBot 2025-W51"
@@ -36,7 +35,7 @@ function mainMenu() {
   return quickActionsKeyboard();
 }
 
-async function fetchWeekly(projectId: string, week = WEEK_DEFAULT) {
+async function fetchWeekly(projectId: string, week: string) {
   try {
     const res = await fetch(
       `${config.publicAppUrl}/projects/${projectId}/metrics/weekly?week=${encodeURIComponent(week)}`,
@@ -62,6 +61,7 @@ export function initBotPolling() {
       { command: 'help', description: 'Help' },
       { command: 'link', description: 'GitHub webhook instructions' },
       { command: 'metrics', description: 'Show metrics for a week' },
+      { command: 'verify', description: 'Why are metrics zero? (self-test)' },
       { command: 'digest', description: 'Send weekly digest' },
       { command: 'pulse', description: 'DevEx survey' },
       { command: 'webapp', description: 'Open Mini‑App' },
@@ -179,8 +179,9 @@ export function initBotPolling() {
     const parsed = parseWeekArg(ctx.message?.text);
 
     let week: string;
-    if (!parsed) week = currentIsoWeek() || WEEK_DEFAULT;
+    if (!parsed) week = getLatestCompleteWeekKey(new Date());
     else if (parsed === 'INVALID') return ctx.reply(uiText.invalidWeekFormat);
+    else if (parsed === 'PREV') week = getPreviousWeekKey(getLatestCompleteWeekKey(new Date()));
     else week = parsed;
 
     const data = await fetchWeekly(String(p._id), week);
@@ -201,7 +202,7 @@ export function initBotPolling() {
   async function handleDigest(ctx: any) {
     const p = await ProjectModel.findOne({ chatId: ctx.chat.id }).lean();
     if (!p) return ctx.reply(uiText.mustStartFirst);
-    const week = currentIsoWeek() || WEEK_DEFAULT;
+    const week = getLatestCompleteWeekKey(new Date());
     const data = await fetchWeekly(String(p._id), week);
     const text = [
       uiText.weeklyDigestTitle,
@@ -213,15 +214,56 @@ export function initBotPolling() {
   }
 
   async function handlePulse(ctx: any) {
-    const week = currentIsoWeek() || WEEK_DEFAULT; // можно вычислять current-1w
+    const week = getLatestCompleteWeekKey(new Date());
     await ctx.reply(
       `📝 Pulse (неделя ${week})\nОцените Developer Experience (1–5):`,
       Markup.inlineKeyboard([[1, 2, 3, 4, 5].map((n) => Markup.button.callback(`${n}`, `pulse:score:${n}:${week}`))]),
     );
   }
 
+  async function handleVerify(ctx: any) {
+    const p = await ProjectModel.findOne({ chatId: ctx.chat.id }).lean();
+    if (!p) return ctx.reply(uiText.mustStartFirst);
+
+    const week = getLatestCompleteWeekKey(new Date());
+    let st: any = null;
+    try {
+      const res = await fetch(`${config.publicAppUrl}/projects/${String(p._id)}/selftest?week=${encodeURIComponent(week)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      st = await res.json();
+    } catch {
+      st = null;
+    }
+
+    if (!st || !st.ok) {
+      return ctx.reply('Self-test failed. Please try again later.');
+    }
+
+    const reasons: any[] = Array.isArray(st.diagnosticReasons) ? st.diagnosticReasons : [];
+    const top = reasons.slice(0, 2).map((r) => `- ${r.code}: ${r.message}`).join('\n');
+    const selftestUrl = `${config.publicAppUrl}/projects/${String(p._id)}/selftest?week=${encodeURIComponent(week)}`;
+    const summary = [
+      `🧪 Self-test (week ${st.weekKey})`,
+      `- webhooks15m: ${st.ingestion?.webhooks15m ?? 0}, 24h: ${st.ingestion?.webhooks24h ?? 0}`,
+      `- deploys(prod success): ${st.dataPresence?.deploysInWeekProd ?? 0} (matched total ${st.dataPresence?.deploysInWeekTotal ?? 0})`,
+      `- prs merged: ${st.dataPresence?.prsMergedInWeek ?? 0}`,
+      '',
+      top ? `Top reasons:\n${top}` : 'No issues detected.',
+      '',
+      `Selftest: ${selftestUrl}`,
+      `ProjectId: ${String(p._id)} (open Mini App → Self-test)`,
+    ].join('\n');
+
+    const webAppUrl = getMiniAppUrl();
+    await ctx.reply(summary);
+    if (canOpenMiniApp(webAppUrl)) {
+      await ctx.reply(uiText.openMiniAppLabel, miniAppInlineKeyboard(webAppUrl));
+    }
+  }
+
   // Commands
   bot.command('metrics', handleMetrics);
+  bot.command('verify', handleVerify);
   bot.command('digest', handleDigest);
   bot.command('pulse', handlePulse);
 

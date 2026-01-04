@@ -4,33 +4,15 @@
  * @param {string} week - ISO week string in format "YYYY-Www", e.g., "2025-W49"
  * @returns {[Date, Date]} - An array with two Date objects: start (inclusive), end (exclusive)
  */
-import { getISOWeek, getISOWeekYear, startOfISOWeek, subWeeks } from 'date-fns';
+import { getIsoWeekKey, getLatestCompleteWeekKey, getWeekRangeExclusive } from './utils/week.js';
 
 export function isoWeekRange(week: string) {
-  // "2025-W49" -> [2025-12-01, 2025-12-08) UTC
-  const [y, w] = week.split('-W').map(Number);
-  const jan4 = new Date(Date.UTC(y, 0, 4));
-  const day = jan4.getUTCDay() || 7;
-  const week1 = new Date(jan4);
-  week1.setUTCDate(jan4.getUTCDate() - day + 1);
-  const from = new Date(week1);
-  from.setUTCDate(week1.getUTCDate() + (w - 1) * 7);
-  const to = new Date(from);
-  to.setUTCDate(from.getUTCDate() + 7);
-  return [from, to] as const;
-}
-
-function asUtcForDateFns(date: Date): Date {
-  // date-fns ISO week helpers use the Date's local timezone.
-  // Shift the timestamp so "local time" == UTC time, making week boundaries stable across deployments.
-  return new Date(date.getTime() + date.getTimezoneOffset() * 60 * 1000);
+  const { from, toExclusive } = getWeekRangeExclusive(week);
+  return [from, toExclusive] as const;
 }
 
 export function isoWeekString(date: Date): string {
-  const d = asUtcForDateFns(date);
-  const y = getISOWeekYear(d);
-  const w = getISOWeek(d);
-  return `${y}-W${String(w).padStart(2, '0')}`;
+  return getIsoWeekKey(date);
 }
 
 /**
@@ -54,11 +36,8 @@ export function percentile(arr: number[], p: number) {
  * @returns {string} - ISO week string for the previous full week.
  */
 export function getLastIsoWeek(): string {
-  // "Last fully completed week" = previous ISO week (not the current, potentially partial week).
-  const now = new Date();
-  const startThisWeek = startOfISOWeek(asUtcForDateFns(now));
-  const startPrevWeek = subWeeks(startThisWeek, 1);
-  return isoWeekString(startPrevWeek);
+  // legacy alias: use the shared "latest complete week" rule
+  return getLatestCompleteWeekKey(new Date());
 }
 
 export function fmtDuration(sec?: number) {
@@ -115,5 +94,5 @@ export function fmtWeekly(m: any) {
 }
 
 export function currentIsoWeek() {
-  return isoWeekString(new Date());
+  return getIsoWeekKey(new Date());
 }

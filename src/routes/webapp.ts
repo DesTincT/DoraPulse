@@ -4,8 +4,10 @@ import { config } from '../config.js';
 import { ProjectModel } from '../models/Project.js';
 import { EventModel } from '../models/Event.js';
 import { getWeekly } from '../services/metricsService.js';
-import { currentIsoWeek, isoWeekString } from '../utils.js';
+import { isoWeekString } from '../utils.js';
+import { getLatestCompleteWeekKey } from '../utils/week.js';
 import { createGithubInstallState } from '../services/githubInstallState.js';
+import { computeProjectSelftest } from '../services/selftestService.js';
 
 export default async function webappRoutes(app: FastifyInstance) {
   // Telegram-authenticated API
@@ -70,12 +72,50 @@ export default async function webappRoutes(app: FastifyInstance) {
     const weekParam = weekParamRaw && /^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/.test(weekParamRaw) ? weekParamRaw : '';
 
     if (noDb) {
-      const weekUsed = weekParam || currentIsoWeek();
+      const weekUsed = weekParam || getLatestCompleteWeekKey(now);
       return reply.send({
         ok: true,
         recentEvents15m: 0,
         weekUsed,
         weekly: null,
+        selftest: {
+          ok: true,
+          now: nowUtc,
+          latestCompleteWeekKey: getLatestCompleteWeekKey(now),
+          weekKey: weekUsed,
+          weekRange: null,
+          ingestion: {
+            lastWebhookAt: null,
+            webhooks15m: 0,
+            webhooks24h: 0,
+            duplicates15m: 0,
+            duplicates24h: 0,
+            failures15m: 0,
+            failures24h: 0,
+          },
+          config: {
+            prodEnvironments: project.settings?.prodEnvironments || ['prod', 'production'],
+            githubInstallationPresent: project.github.installed,
+            githubReposConfigured: false,
+            repoMappingPresent: false,
+          },
+          dataPresence: {
+            prsMergedInWeek: 0,
+            deploysInWeekTotal: 0,
+            deploysInWeekProd: 0,
+            lastMergedPrAt: null,
+            lastProdDeployAt: null,
+            deployStatusEventsInWeek: 0,
+          },
+          diagnosticReasons: [
+            {
+              code: 'INSTALLATION_OR_PERMISSIONS_MISSING',
+              severity: 'warn',
+              message: 'DORA_DEV_NO_DB=true: selftest is running without MongoDB (limited signals).',
+              fix: 'Run with MongoDB enabled to get ingestion + data diagnostics.',
+            },
+          ],
+        },
         debug: {
           nowUtc,
           latestEventTs: null,
@@ -95,8 +135,9 @@ export default async function webappRoutes(app: FastifyInstance) {
     const latestEventTs = latest?.ts ? new Date(latest.ts as any) : null;
     const latestEventWeek = latestEventTs ? isoWeekString(latestEventTs) : null;
 
-    const weekUsed = weekParam || latestEventWeek || currentIsoWeek();
+    const weekUsed = weekParam || getLatestCompleteWeekKey(now);
     const weekly = await getWeekly(project.projectId, weekUsed);
+    const selftest = await computeProjectSelftest(String(project.projectId), weekUsed);
 
     if (
       bypass &&
@@ -108,6 +149,7 @@ export default async function webappRoutes(app: FastifyInstance) {
         recentEvents15m: recent || 0,
         weekUsed,
         weekly,
+        selftest,
         debug: {
           nowUtc,
           latestEventTs: latestEventTs ? latestEventTs.toISOString() : null,
@@ -124,6 +166,7 @@ export default async function webappRoutes(app: FastifyInstance) {
       recentEvents15m: recent || 0,
       weekUsed,
       weekly,
+      selftest,
       debug: {
         nowUtc,
         latestEventTs: latestEventTs ? latestEventTs.toISOString() : null,

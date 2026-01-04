@@ -9,16 +9,19 @@ import githubWebhook from './routes/webhooks.github.js';
 import githubAppWebhook from './routes/webhooks.github.app.js';
 import incidentsRoutes from './routes/incidents.js';
 import pulseRoutes from './routes/pulse.js';
+import selftestRoutes from './routes/selftest.js';
 import webappRoutes from './routes/webapp.js';
 import githubAppCallbackRoutes from './routes/githubAppCallback.js';
 import healthRoutes from './routes/health.js';
 import webappStatic from './plugins/webappStatic.js';
 import telegramAuthPlugin from './plugins/telegramAuth.js';
+import { pathToFileURL } from 'url';
 
 const PORT = Number(process.env.PORT ?? 8080);
 
-export async function buildServer() {
-  const fastify = Fastify({ logger: true });
+export async function buildServer(opts?: { mongoUri?: string; noDb?: boolean; logger?: boolean; disableCron?: boolean }) {
+  const isTest = process.env.NODE_ENV === 'test';
+  const fastify = Fastify({ logger: opts?.logger ?? (isTest ? false : true) });
 
   // Capture raw JSON body for HMAC validation while still parsing JSON
   fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
@@ -39,11 +42,13 @@ export async function buildServer() {
   await fastify.register(webappStatic);
   await fastify.register(githubAppCallbackRoutes);
 
-  const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
+  const envNoDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
+  const noDb = opts?.noDb ?? envNoDb;
   if (!noDb) {
     // Mongo
     try {
-      await mongoose.connect(config.mongoUri);
+      const mongoUri = opts?.mongoUri ?? config.mongoUri;
+      await mongoose.connect(mongoUri);
       fastify.log.info('MongoDB connected');
     } catch (err) {
       fastify.log.error({ err }, 'MongoDB connection error');
@@ -58,6 +63,7 @@ export async function buildServer() {
     await fastify.register(githubWebhook);
     await fastify.register(githubAppWebhook);
     await fastify.register(metricsRoutes);
+    await fastify.register(selftestRoutes);
     await fastify.register(incidentsRoutes as any);
     await fastify.register(pulseRoutes as any);
   } else {
@@ -95,10 +101,13 @@ export async function buildServer() {
     });
     await api.register(webappRoutes);
   });
-  if (!noDb) {
+  // Cron jobs should not run during tests (they keep the event loop alive and prevent clean process exit).
+  if (!noDb && !isTest && !opts?.disableCron) {
     await import('./cron/jobs.js');
-  } else {
+  } else if (noDb) {
     fastify.log.warn('DORA_DEV_NO_DB=true: cron jobs not started');
+  } else if (isTest) {
+    fastify.log.info('NODE_ENV=test: cron jobs not started');
   }
 
   // Админ/дебаг — только вне production
@@ -115,22 +124,25 @@ export async function buildServer() {
   return fastify;
 }
 
-buildServer()
-  .then((fastify) => {
-    fastify.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
-      if (err) {
-        fastify.log.error(err);
-        process.exit(1);
+const isMain = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) {
+  buildServer()
+    .then((fastify) => {
+      fastify.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
+        if (err) {
+          fastify.log.error(err);
+          process.exit(1);
+        }
+        fastify.log.info(`Server listening at ${address}`);
+      });
+      if (String(process.env.DORA_DEV_NO_DB || '').toLowerCase() !== 'true') {
+        initBotPolling();
+      } else {
+        fastify.log.warn('DORA_DEV_NO_DB=true: Telegram bot polling not started');
       }
-      fastify.log.info(`Server listening at ${address}`);
+    })
+    .catch((err) => {
+      console.error('Server error:', err);
+      process.exit(1);
     });
-    if (String(process.env.DORA_DEV_NO_DB || '').toLowerCase() !== 'true') {
-      initBotPolling();
-    } else {
-      fastify.log.warn('DORA_DEV_NO_DB=true: Telegram bot polling not started');
-    }
-  })
-  .catch((err) => {
-    console.error('Server error:', err);
-    process.exit(1);
-  });
+}
