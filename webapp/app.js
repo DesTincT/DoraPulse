@@ -65,6 +65,7 @@ function App() {
           saving: envs.saving,
           recentlySaved: envs.recentlySaved,
           disabled: !authed,
+          errorMessage: envs.apiError,
         }),
       ),
     ),
