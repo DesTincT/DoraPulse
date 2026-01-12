@@ -69,8 +69,9 @@ export function fmtWeekly(m: any) {
   if (!hasAnyData(m)) return 'No data yet 🤷‍♂️';
 
   const df = m?.df?.count ?? 0;
-  const cfrVal = m?.cfr?.value;
-  const cfr = cfrVal != null ? `${(cfrVal * 100).toFixed(1)}%` : '—';
+  // TEMP: hide CFR line in bot UI (data trust rollout; can be re-enabled later)
+  // const cfrVal = m?.cfr?.value;
+  // const cfr = cfrVal != null ? `${(cfrVal * 100).toFixed(1)}%` : '—';
 
   // PR Cycle Time (show — when zeros)
   const prCt50 = fmtDuration(m?.prCycleTime?.p50);
@@ -81,15 +82,16 @@ export function fmtWeekly(m: any) {
   const doraLt50 = ltSamples > 0 ? fmtDuration(m?.leadTime?.p50) : '—';
   const doraLt90 = ltSamples > 0 ? fmtDuration(m?.leadTime?.p90) : '—';
 
-  const mttr = fmtDuration(m?.mttr?.p50);
+  // TEMP: hide MTTR line in bot UI (can be re-enabled later)
+  // const mttr = fmtDuration(m?.mttr?.p50);
 
   return [
     `📅 Неделя: ${m?.week ?? '—'}`,
     `🚀 Deployment Frequency: ${df}`,
-    `🔁 CFR: ${cfr}`,
+    // `🔁 CFR: ${cfr}`,
     `⏱️ Lead Time for Changes p50/p90: ${doraLt50} / ${doraLt90}`,
     `🔁 PR Cycle Time p50/p90: ${prCt50} / ${prCt90}`,
-    `🧯 MTTR p50: ${mttr}`,
+    // `🧯 MTTR p50: ${mttr}`,
   ].join('\n');
 }
 
