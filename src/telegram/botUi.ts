@@ -15,9 +15,8 @@ export function getMiniAppUrl(): string {
 }
 
 export function quickActionsKeyboard() {
-  const row1 = [Markup.button.text(uiText.menu.metrics), Markup.button.text(uiText.menu.digest)];
-  const row2 = [Markup.button.text(uiText.menu.pulse)];
-  return Markup.keyboard([row1, row2]).resize();
+  // TEMP: hide reply-keyboard quick actions; rely on Telegram left “Menu” commands instead.
+  return Markup.removeKeyboard();
 }
 
 export function miniAppInlineKeyboard(url: string) {

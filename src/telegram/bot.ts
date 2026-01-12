@@ -321,8 +321,8 @@ export function initBotPolling() {
     await bootstrapCommands(bot);
     await bot.launch();
     console.log('[bot] launched (polling + UI)');
-    process.once('SIGINT', () => bot.stop('SIGINT'));
-    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  process.once('SIGINT', () => bot.stop('SIGINT'));
+  process.once('SIGTERM', () => bot.stop('SIGTERM'));
   }
 
   void startBot().catch((err) => {
