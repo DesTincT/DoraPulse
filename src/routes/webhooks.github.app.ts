@@ -33,40 +33,36 @@ export default async function githubAppWebhook(app: FastifyInstance) {
       const eventName = String((req.headers['x-github-event'] ?? '') as string).toLowerCase();
       const deliveryId = String((req.headers['x-github-delivery'] ?? '') as string);
       const payload = req.body as any;
+      const repoFullName: string | undefined = payload?.repository?.full_name;
 
       if (eventName === 'ping') {
         app.log.info({ eventName }, 'github app ping');
         return reply.send({ ok: true });
       }
 
-      const installationId: number | undefined =
-        typeof payload?.installation?.id === 'number' ? payload.installation.id : undefined;
-      if (!installationId) {
-        app.log.info({ eventName }, 'github app webhook: missing installation id');
-        return reply.code(202).send({ ok: true, ignored: true, reason: 'missing_installation_id' });
-      }
+      // Installation id must be a number; payload can contain it as string depending on middleware/serializer.
+      const installationIdRaw = payload?.installation?.id ?? payload?.installationId;
+      const installationId = Number(installationIdRaw);
+      const hasInstallationId = Number.isFinite(installationId) && installationId > 0;
 
-      const project = await ProjectModel.findOne({
-        $or: [{ 'settings.github.installationId': installationId }, { 'github.installationId': installationId }],
-      }).lean();
-      app.log.info({ eventName, deliveryId, installationId, matched: !!project?._id }, 'github app webhook received');
-      if (!project?._id) return reply.code(202).send({ ok: true, ignored: true, reason: 'unknown_installation' });
+      app.log.info(
+        { eventName, deliveryId, installationId: hasInstallationId ? installationId : null, repoFullName },
+        'github app webhook received',
+      );
 
-      // Delivery-level idempotency
+      // Persist delivery before any filtering (idempotency + visibility).
       if (deliveryId) {
         const now = new Date();
-        const repoFullName: string | undefined = payload?.repository?.full_name;
         const res: any = await WebhookDeliveryModel.updateOne(
           { provider: 'github', deliveryId },
           {
-            $setOnInsert: { provider: 'github', deliveryId, firstSeenAt: now },
+            $setOnInsert: { provider: 'github', deliveryId, firstSeenAt: now, seenCount: 0 },
             $set: {
               lastSeenAt: now,
-              projectId: project._id,
-              installationId,
+              installationId: hasInstallationId ? installationId : undefined,
               repoFullName,
               eventName: eventName || undefined,
-              status: 'processed',
+              status: 'received',
             },
             $inc: { seenCount: 1 },
           },
@@ -78,12 +74,47 @@ export default async function githubAppWebhook(app: FastifyInstance) {
             { provider: 'github', deliveryId },
             { $set: { lastSeenAt: now, status: 'duplicate' } },
           );
-          app.log.info(
-            { deliveryId, eventName, installationId, projectId: String(project._id) },
-            'duplicate delivery skipped',
-          );
+          app.log.info({ deliveryId, eventName, installationId: hasInstallationId ? installationId : null }, 'duplicate delivery skipped');
           return reply.send({ ok: true, duplicate: true });
         }
+      }
+
+      if (!hasInstallationId) {
+        app.log.warn(
+          { eventName, deliveryId, installationIdRaw, repoFullName },
+          'github app webhook: missing/invalid installation id',
+        );
+        if (deliveryId) {
+          await WebhookDeliveryModel.updateOne(
+            { provider: 'github', deliveryId },
+            { $set: { status: 'failed', error: 'missing_installation_id', processedAt: new Date() } },
+          );
+        }
+        return reply.code(202).send({ ok: true, queued: true, reason: 'missing_installation_id', installationId: null });
+      }
+
+      const project = await ProjectModel.findOne({
+        $or: [{ 'settings.github.installationId': installationId }, { 'github.installationId': installationId }],
+      }).lean();
+      if (!project?._id) {
+        app.log.warn(
+          { eventName, deliveryId, installationId, repoFullName },
+          'github app webhook queued: unknown installation (not linked to any project)',
+        );
+        if (deliveryId) {
+          await WebhookDeliveryModel.updateOne(
+            { provider: 'github', deliveryId },
+            { $set: { status: 'queued', error: 'unknown_installation', processedAt: new Date() } },
+          );
+        }
+        return reply.code(202).send({ ok: true, queued: true, reason: 'unknown_installation', installationId });
+      }
+      // backfill delivery with projectId now that it is known
+      if (deliveryId) {
+        await WebhookDeliveryModel.updateOne(
+          { provider: 'github', deliveryId },
+          { $set: { projectId: project._id } },
+        );
       }
 
       // Installation events: update linked repos/account metadata (MVP)
@@ -198,7 +229,7 @@ export default async function githubAppWebhook(app: FastifyInstance) {
       if (deliveryId) {
         await WebhookDeliveryModel.updateOne(
           { provider: 'github', deliveryId },
-          { $set: { status: 'processed', processedAt: new Date() } },
+          { $set: { status: 'processed', processedAt: new Date(), error: undefined } },
         );
       }
       return reply.send({ ok: true, inserted });
