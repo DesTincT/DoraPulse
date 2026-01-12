@@ -42,7 +42,10 @@ export function getEffectiveProdEnvironments(rule: unknown): string[] {
           .map((s) => s.trim())
           .filter(Boolean)
       : [];
-  const normalized = arr.map((x) => String(x)).map((x) => x.trim()).filter(Boolean);
+  const normalized = arr
+    .map((x) => String(x))
+    .map((x) => x.trim())
+    .filter(Boolean);
   return normalized.length ? normalized : defaults;
 }
 

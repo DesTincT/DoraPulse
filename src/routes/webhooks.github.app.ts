@@ -74,7 +74,10 @@ export default async function githubAppWebhook(app: FastifyInstance) {
             { provider: 'github', deliveryId },
             { $set: { lastSeenAt: now, status: 'duplicate' } },
           );
-          app.log.info({ deliveryId, eventName, installationId: hasInstallationId ? installationId : null }, 'duplicate delivery skipped');
+          app.log.info(
+            { deliveryId, eventName, installationId: hasInstallationId ? installationId : null },
+            'duplicate delivery skipped',
+          );
           return reply.send({ ok: true, duplicate: true });
         }
       }
@@ -90,7 +93,9 @@ export default async function githubAppWebhook(app: FastifyInstance) {
             { $set: { status: 'failed', error: 'missing_installation_id', processedAt: new Date() } },
           );
         }
-        return reply.code(202).send({ ok: true, queued: true, reason: 'missing_installation_id', installationId: null });
+        return reply
+          .code(202)
+          .send({ ok: true, queued: true, reason: 'missing_installation_id', installationId: null });
       }
 
       const project = await ProjectModel.findOne({
@@ -111,10 +116,7 @@ export default async function githubAppWebhook(app: FastifyInstance) {
       }
       // backfill delivery with projectId now that it is known
       if (deliveryId) {
-        await WebhookDeliveryModel.updateOne(
-          { provider: 'github', deliveryId },
-          { $set: { projectId: project._id } },
-        );
+        await WebhookDeliveryModel.updateOne({ provider: 'github', deliveryId }, { $set: { projectId: project._id } });
       }
 
       // Installation events: update linked repos/account metadata (MVP)
