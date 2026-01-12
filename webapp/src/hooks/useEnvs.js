@@ -30,18 +30,25 @@ export function useEnvs(initData) {
     }
   }
 
-  async function save() {
+  async function save(rawOverride) {
     try {
       setSaving(true);
       setError(null);
-      const parts = envText
+      setApiError(null);
+      const raw = typeof rawOverride === 'string' ? rawOverride : envText;
+      const parts = String(raw || '')
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
       // dedupe case-insensitive
       const dedup = Array.from(new Map(parts.map((p) => [p.toLowerCase(), p])).values());
+      if (!dedup.length) {
+        setApiError('Please enter at least one environment (comma-separated).');
+        return false;
+      }
       await apiPost('/api/envs', { selected: dedup }, initData);
       setEnvs((prev) => ({ ...prev, selected: dedup }));
+      setEnvText(dedup.join(', '));
       setSavedAt(Date.now());
       return true;
     } catch (e) {

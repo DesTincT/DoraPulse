@@ -199,14 +199,20 @@ export default async function webappRoutes(app: FastifyInstance) {
     const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
     if (noDb) {
       const body: any = req.body || {};
-      const selected: string[] = Array.isArray(body.selected) ? body.selected : [];
-      return reply.send({ ok: true, selected });
+      const selectedRaw: any[] = Array.isArray(body.selected) ? body.selected : [];
+      const parts = selectedRaw.map((x) => String(x).trim()).filter(Boolean);
+      const dedup = Array.from(new Map(parts.map((p) => [p.toLowerCase(), p])).values());
+      if (!dedup.length) return reply.code(400).send({ ok: false, error: 'prodEnvironments required' });
+      return reply.send({ ok: true, selected: dedup });
     }
     const body: any = req.body || {};
-    const selected: string[] = Array.isArray(body.selected) ? body.selected : [];
-    await ProjectModel.updateOne({ _id: project.projectId }, { $set: { 'settings.prodEnvironments': selected } });
+    const selectedRaw: any[] = Array.isArray(body.selected) ? body.selected : [];
+    const parts = selectedRaw.map((x) => String(x).trim()).filter(Boolean);
+    const dedup = Array.from(new Map(parts.map((p) => [p.toLowerCase(), p])).values());
+    if (!dedup.length) return reply.code(400).send({ ok: false, error: 'prodEnvironments required' });
+    await ProjectModel.updateOne({ _id: project.projectId }, { $set: { 'settings.prodEnvironments': dedup } });
     // keep request context consistent for subsequent handlers in the same request lifecycle
-    project.settings.prodEnvironments = selected;
-    return reply.send({ ok: true });
+    project.settings.prodEnvironments = dedup;
+    return reply.send({ ok: true, selected: dedup });
   });
 }
