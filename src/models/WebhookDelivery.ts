@@ -26,7 +26,12 @@ const WebhookDeliverySchema = new Schema<WebhookDelivery>(
     firstSeenAt: { type: Date, required: true },
     lastSeenAt: { type: Date, required: true },
     seenCount: { type: Number, required: true, default: 1 },
-    status: { type: String, enum: ['received', 'processed', 'duplicate', 'queued', 'failed'], required: true, default: 'received' },
+    status: {
+      type: String,
+      enum: ['received', 'processed', 'duplicate', 'queued', 'failed'],
+      required: true,
+      default: 'received',
+    },
     processedAt: { type: Date, required: false },
     error: { type: String, required: false },
   },

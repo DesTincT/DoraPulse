@@ -102,7 +102,6 @@ export function initBotPolling() {
     // Ensure the left “Menu” button shows commands instead of being empty.
     await bot.telegram.setChatMenuButton({ menu_button: { type: 'commands' } } as any);
   }
-  
 
   // /start — find/create project and show menu
   bot.start(async (ctx) => {
@@ -200,7 +199,9 @@ export function initBotPolling() {
       }
       await ProjectModel.updateOne({ _id: p._id }, update);
 
-      await ctx.reply(`✅ linked installation ${installationId} to project ${String(p._id)}${repoFullName ? ` (${repoFullName})` : ''}`);
+      await ctx.reply(
+        `✅ linked installation ${installationId} to project ${String(p._id)}${repoFullName ? ` (${repoFullName})` : ''}`,
+      );
     } catch (e: any) {
       console.error('[bot] /link_install failed', e);
       await ctx.reply('Failed to link installation. Check logs.');
@@ -359,8 +360,8 @@ export function initBotPolling() {
     await bootstrapCommands(bot);
     await bot.launch();
     console.log('[bot] launched (polling + UI)');
-  process.once('SIGINT', () => bot.stop('SIGINT'));
-  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+    process.once('SIGINT', () => bot.stop('SIGINT'));
+    process.once('SIGTERM', () => bot.stop('SIGTERM'));
   }
 
   void startBot().catch((err) => {
