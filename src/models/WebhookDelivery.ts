@@ -10,7 +10,7 @@ export interface WebhookDelivery extends Document {
   firstSeenAt: Date;
   lastSeenAt: Date;
   seenCount: number;
-  status: 'processed' | 'duplicate' | 'failed';
+  status: 'received' | 'processed' | 'duplicate' | 'queued' | 'failed';
   processedAt?: Date;
   error?: string;
 }
@@ -26,7 +26,7 @@ const WebhookDeliverySchema = new Schema<WebhookDelivery>(
     firstSeenAt: { type: Date, required: true },
     lastSeenAt: { type: Date, required: true },
     seenCount: { type: Number, required: true, default: 1 },
-    status: { type: String, enum: ['processed', 'duplicate', 'failed'], required: true, default: 'processed' },
+    status: { type: String, enum: ['received', 'processed', 'duplicate', 'queued', 'failed'], required: true, default: 'received' },
     processedAt: { type: Date, required: false },
     error: { type: String, required: false },
   },

@@ -169,6 +169,44 @@ export function initBotPolling() {
     await ctx.reply(['🔗 GitHub Webhook:', ...lines.slice(1)].join('\n'));
   });
 
+  // /link_install <installationId> [repoFullName]
+  // Admin/private-chat helper to bind a GitHub App installation to the current project.
+  bot.command('link_install', async (ctx) => {
+    try {
+      const p = await ProjectModel.findOne({ chatId: ctx.chat.id });
+      if (!p) return ctx.reply(uiText.mustStartFirst);
+
+      const text = String(ctx.message?.text || '').trim();
+      const parts = text.split(/\s+/);
+      const idRaw = parts[1];
+      const repoFullName = parts[2];
+      const installationId = Number(idRaw);
+      if (!Number.isFinite(installationId) || installationId <= 0) {
+        return ctx.reply('Usage: /link_install <installationId> [owner/repo]');
+      }
+
+      const update: any = {
+        $set: {
+          'settings.github.installationId': installationId,
+          'settings.github.updatedAt': new Date(),
+          // keep existing canonical/legacy locations in sync
+          githubInstallationId: installationId,
+          'github.installationId': installationId,
+          'github.updatedAt': new Date(),
+        },
+      };
+      if (repoFullName && typeof repoFullName === 'string' && repoFullName.includes('/')) {
+        update.$addToSet = { 'settings.github.repos': repoFullName, 'github.repos': repoFullName };
+      }
+      await ProjectModel.updateOne({ _id: p._id }, update);
+
+      await ctx.reply(`✅ linked installation ${installationId} to project ${String(p._id)}${repoFullName ? ` (${repoFullName})` : ''}`);
+    } catch (e: any) {
+      console.error('[bot] /link_install failed', e);
+      await ctx.reply('Failed to link installation. Check logs.');
+    }
+  });
+
   // Pulse callback handler
   bot.on('callback_query', async (ctx) => {
     const cq: any = ctx.callbackQuery as any;
