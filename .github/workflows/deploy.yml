@@ -106,7 +106,7 @@ jobs:
           token: ${{ github.token }}
           deployment-id: ${{ steps.deployment.outputs.deployment_id }}
           state: success
-          environment: 'Yandex Cloud'
+          environment: production
           environment-url: ${{ secrets.PUBLIC_APP_URL }}
           auto-inactive: true
 
@@ -118,5 +118,5 @@ jobs:
           token: ${{ github.token }}
           deployment-id: ${{ steps.deployment.outputs.deployment_id }}
           state: failure
-          environment: 'Yandex Cloud'
+          environment: production
           auto-inactive: true
