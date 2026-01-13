@@ -91,9 +91,15 @@ jobs:
             rm -f "$ZIP"
 
             cd /opt/dora
-            docker compose down
             docker compose build --no-cache api
-            docker compose up -d --force-recreate
+            docker compose up -d --no-deps --force-recreate api
+
+            for i in $(seq 1 30); do
+              curl -fsS https://api.destinct.ru/health && break
+              sleep 2
+            done
+            curl -fsS https://api.destinct.ru/health
+
 
             # sanity-check: убедимся, что новый код реально внутри контейнера
             docker compose exec api sh -lc 'node -p "require(\"fs\").statSync(\"dist/index.js\").mtime.toISOString()"'
