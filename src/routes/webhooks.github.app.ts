@@ -56,7 +56,7 @@ export default async function githubAppWebhook(app: FastifyInstance) {
         const res: any = await WebhookDeliveryModel.updateOne(
           { provider: 'github', deliveryId },
           {
-            $setOnInsert: { provider: 'github', deliveryId, firstSeenAt: now, seenCount: 0 },
+            $setOnInsert: { provider: 'github', deliveryId, firstSeenAt: now },
             $set: {
               lastSeenAt: now,
               installationId: hasInstallationId ? installationId : undefined,
