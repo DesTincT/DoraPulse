@@ -1,12 +1,13 @@
 import { Types } from 'mongoose';
 import { EventModel } from '../models/Event.js';
 import { IncidentModel } from '../models/Incident.js';
-import { isoWeekRange, percentile } from '../utils.js';
+import { isoWeekRange, percentile, getIsoWeekDateRangeTz } from '../utils.js';
 import { CommitCacheModel } from '../models/CommitCache.js';
 import { fetchCommitCommittedAt } from './githubApi.js';
 import { ProjectModel } from '../models/Project.js';
 import type { Event as EventDoc } from '../models/Event.js';
 import { matchProdEnvironment } from './prodDeployment.js';
+import { config } from '../config.js';
 
 export async function getWeekly(projectId: Types.ObjectId | string, week: string) {
   const pid = typeof projectId === 'string' ? new Types.ObjectId(projectId) : projectId;
@@ -202,5 +203,13 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
     },
   };
 
-  return result;
+  // Attach human-friendly week range for API/UI
+  const range = getIsoWeekDateRangeTz(week, config.timezone);
+  (result as any).weekRange = {
+    start: range.startDate.toISOString(),
+    end: range.endDate.toISOString(),
+    label: range.label,
+  };
+
+  return result as any;
 }

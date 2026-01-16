@@ -4,7 +4,14 @@
  * @param {string} week - ISO week string in format "YYYY-Www", e.g., "2025-W49"
  * @returns {[Date, Date]} - An array with two Date objects: start (inclusive), end (exclusive)
  */
-import { getIsoWeekKey, getLatestCompleteWeekKey, getWeekRangeExclusive } from './utils/week.js';
+import {
+  getIsoWeekKey,
+  getLatestCompleteWeekKey,
+  getWeekRangeExclusive,
+  getCurrentIsoWeek,
+  getIsoWeekDateRange,
+} from './utils/week.js';
+import { config } from './config.js';
 
 export function isoWeekRange(week: string) {
   const { from, toExclusive } = getWeekRangeExclusive(week);
@@ -85,8 +92,14 @@ export function fmtWeekly(m: any) {
   // TEMP: hide MTTR line in bot UI (can be re-enabled later)
   // const mttr = fmtDuration(m?.mttr?.p50);
 
+  const week = m?.week ?? '—';
+  const rangeLabel: string | null =
+    (m?.weekRange && typeof m.weekRange.label === 'string' && m.weekRange.label) || null;
+  const header =
+    rangeLabel && week ? `📅 Неделя: ${week} (${rangeLabel})` : `📅 Неделя: ${week}`;
+
   return [
-    `📅 Неделя: ${m?.week ?? '—'}`,
+    header,
     `🚀 Deployment Frequency: ${df}`,
     // `🔁 CFR: ${cfr}`,
     `⏱️ Lead Time for Changes p50/p90: ${doraLt50} / ${doraLt90}`,
@@ -98,3 +111,8 @@ export function fmtWeekly(m: any) {
 export function currentIsoWeek() {
   return getIsoWeekKey(new Date());
 }
+
+// Re-exports for convenience where importing from utils.ts is preferred
+export const getCurrentIsoWeekTz = (tz?: string) => getCurrentIsoWeek(tz ?? config.timezone);
+export const getIsoWeekDateRangeTz = (week: string, tz?: string) =>
+  getIsoWeekDateRange(week, tz ?? config.timezone);

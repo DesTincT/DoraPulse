@@ -1,14 +1,15 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getWeekly } from '../services/metricsService.js';
 import { Types } from 'mongoose';
-import { getLastIsoWeek } from '../utils.js';
+import { getCurrentIsoWeekTz, getIsoWeekDateRangeTz } from '../utils.js';
+import { config } from '../config.js';
 
 export default async function (fastify: FastifyInstance) {
   fastify.get('/projects/:id/metrics/weekly', async (request: FastifyRequest, reply: FastifyReply) => {
     const id = (request.params as any).id;
     let week = (request.query as any).week;
     if (!week) {
-      week = getLastIsoWeek();
+      week = getCurrentIsoWeekTz(config.timezone);
     }
     let projectId: Types.ObjectId | string;
     try {
@@ -19,7 +20,14 @@ export default async function (fastify: FastifyInstance) {
 
     try {
       const result = await getWeekly(projectId, week);
-      return reply.send(result);
+      const range = getIsoWeekDateRangeTz(week, config.timezone);
+      const weekRange = {
+        start: range.startDate.toISOString(),
+        end: range.endDate.toISOString(),
+        label: range.label,
+      };
+      request.log.debug({ computedWeek: week, weekRange }, 'weekly metrics week range computed');
+      return reply.send({ ...result, weekRange });
     } catch (e: any) {
       return reply.code(500).send({ error: e.message || 'Failed to get metrics' });
     }

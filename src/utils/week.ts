@@ -1,4 +1,5 @@
-import { addWeeks, getISOWeek, getISOWeekYear, startOfISOWeek, subWeeks } from 'date-fns';
+import { addWeeks, getISOWeek, getISOWeekYear, startOfISOWeek, subWeeks, addDays, parse } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 function asUtcForDateFns(date: Date): Date {
   // date-fns ISO week helpers use the Date's local timezone.
@@ -58,4 +59,45 @@ export function getPreviousWeekKey(weekKey: string): string {
   const { from } = getWeekRangeExclusive(weekKey);
   // one millisecond before this week starts is guaranteed to be in the previous ISO week
   return getIsoWeekKey(new Date(from.getTime() - 1));
+}
+
+/**
+ * Return current ISO week key for the given timezone.
+ * Uses ISO week-year so year transitions are correct (e.g., 2026-W01).
+ */
+export function getCurrentIsoWeek(tz: string): string {
+  // date-fns tokens:
+  // RRRR — ISO week-numbering year, II — ISO week of year (01..53)
+  return formatInTimeZone(new Date(), tz, "RRRR-'W'II");
+}
+
+/**
+ * Returns Monday..Sunday range and a human label for a given ISO week in a timezone.
+ * - startDate: Monday 00:00 (UTC)
+ * - endDate: next Monday 00:00 (UTC) — exclusive
+ * - label: "DD.MM–DD.MM" formatted in tz
+ */
+export function getIsoWeekDateRange(
+  weekKey: string,
+  tz: string,
+): { startDate: Date; endDate: Date; label: string } {
+  const [yStr, wStr] = weekKey.split('-W');
+  const y = Number(yStr);
+  const w = Number(wStr);
+  if (!Number.isFinite(y) || !Number.isFinite(w)) throw new Error(`Invalid weekKey: ${weekKey}`);
+
+  // Use local parse with ISO week-year tokens to get a representative Monday date (in local zone),
+  // then compute end by adding 6 days for label purposes.
+  const mondayLocal = parse(`${y}-W${String(w).padStart(2, '0')}-1`, "RRRR-'W'II-i", new Date());
+  const sundayLocal = addDays(mondayLocal, 6);
+
+  // For UTC boundaries we keep the canonical UTC Mon..Mon [from, toExclusive)
+  const { from: startDate, toExclusive: endDate } = getWeekRangeExclusive(weekKey);
+
+  const startLabel = formatInTimeZone(startDate, tz, 'dd.MM');
+  // Use one millisecond before endExclusive to get Sunday's calendar date
+  const endLabel = formatInTimeZone(new Date(endDate.getTime() - 1), tz, 'dd.MM');
+  const label = `${startLabel}–${endLabel}`;
+
+  return { startDate, endDate, label };
 }
