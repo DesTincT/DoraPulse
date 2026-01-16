@@ -72,7 +72,7 @@ export default async function webappRoutes(app: FastifyInstance) {
     const weekParam = weekParamRaw && /^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/.test(weekParamRaw) ? weekParamRaw : '';
 
     if (noDb) {
-      const weekUsed = weekParam || getLatestCompleteWeekKey(now);
+      const weekUsed = weekParam || getCurrentIsoWeek(config.timezone);
       return reply.send({
         ok: true,
         recentEvents15m: 0,
@@ -81,7 +81,7 @@ export default async function webappRoutes(app: FastifyInstance) {
         selftest: {
           ok: true,
           now: nowUtc,
-          latestCompleteWeekKey: getLatestCompleteWeekKey(now),
+          latestCompleteWeekKey: getCurrentIsoWeek(config.timezone),
           weekKey: weekUsed,
           weekRange: null,
           ingestion: {
