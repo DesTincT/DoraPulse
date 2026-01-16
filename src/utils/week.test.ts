@@ -1,4 +1,34 @@
 import assert from 'node:assert/strict';
+import { getIsoWeekDateRange } from './week.js';
+import { formatInTimeZone } from 'date-fns-tz';
+
+const TZ = 'Europe/Berlin';
+
+function isoWeekFor(dateIso: string, tz = TZ): string {
+  // Using formatInTimeZone to derive ISO week-year for a specific date/time
+  const d = new Date(dateIso);
+  return formatInTimeZone(d, tz, "RRRR-'W'II");
+}
+
+test('ISO week-year rollover: 2026-01-01 is 2026-W01 (Europe/Berlin)', () => {
+  const w = isoWeekFor('2026-01-01T12:00:00Z', TZ);
+  assert.equal(w, '2026-W01');
+});
+
+test('ISO week-year rollover: 2025-12-31 is 2026-W01 (Europe/Berlin)', () => {
+  const w = isoWeekFor('2025-12-31T12:00:00Z', TZ);
+  assert.equal(w, '2026-W01');
+});
+
+test('getIsoWeekDateRange label for 2026-W01 (Europe/Berlin)', () => {
+  const r = getIsoWeekDateRange('2026-W01', TZ);
+  assert.equal(r.label, '29.12–04.01');
+  // sanity: dates are ISO strings
+  assert.ok(typeof r.startDate.toISOString() === 'string');
+  assert.ok(typeof r.endDate.toISOString() === 'string');
+});
+
+import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getIsoWeekKey, getLatestCompleteWeekKey, getWeekRange } from './week.js';
 

@@ -5,6 +5,8 @@ import { RepoModel } from '../models/Repo.js';
 import { PullRequestModel } from '../models/PullRequest.js';
 import { WebhookDeliveryModel } from '../models/WebhookDelivery.js';
 import { getLatestCompleteWeekKey, getWeekRange, getWeekRangeExclusive } from '../utils/week.js';
+import { getIsoWeekDateRangeTz } from '../utils.js';
+import { config } from '../config.js';
 import { matchProdEnvironment, getEffectiveProdEnvironments } from './prodDeployment.js';
 
 export type DiagnosticSeverity = 'info' | 'warn' | 'error';
@@ -269,7 +271,11 @@ export async function computeProjectSelftest(projectId: string, weekParam?: stri
     now: now.toISOString(),
     latestCompleteWeekKey,
     weekKey,
-    weekRange: { from: from.toISOString(), to: to.toISOString() },
+    weekRange: {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      label: getIsoWeekDateRangeTz(weekKey, config.timezone).label,
+    } as any,
     ingestion: {
       lastWebhookAt,
       webhooks15m,

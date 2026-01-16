@@ -5,7 +5,7 @@ import { ProjectModel } from '../models/Project.js';
 import { EventModel } from '../models/Event.js';
 import { getWeekly } from '../services/metricsService.js';
 import { isoWeekString } from '../utils.js';
-import { getLatestCompleteWeekKey } from '../utils/week.js';
+import { getCurrentIsoWeek } from '../utils/week.js';
 import { createGithubInstallState } from '../services/githubInstallState.js';
 import { computeProjectSelftest } from '../services/selftestService.js';
 
@@ -135,7 +135,7 @@ export default async function webappRoutes(app: FastifyInstance) {
     const latestEventTs = latest?.ts ? new Date(latest.ts as any) : null;
     const latestEventWeek = latestEventTs ? isoWeekString(latestEventTs) : null;
 
-    const weekUsed = weekParam || getLatestCompleteWeekKey(now);
+    const weekUsed = weekParam || getCurrentIsoWeek(config.timezone);
     const weekly = await getWeekly(project.projectId, weekUsed);
     const selftest = await computeProjectSelftest(String(project.projectId), weekUsed);
 

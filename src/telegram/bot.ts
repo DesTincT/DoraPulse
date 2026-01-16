@@ -4,7 +4,7 @@ import { config } from '../config.js';
 import { ProjectModel } from '../models/Project.js';
 import { RepoModel } from '../models/Repo.js';
 import { randomBytes } from 'crypto';
-import { fmtWeekly } from '../utils.js';
+import { fmtWeekly, getCurrentIsoWeekTz } from '../utils.js';
 import { getLatestCompleteWeekKey, getPreviousWeekKey } from '../utils/week.js';
 import { uiText } from './uiText.js';
 import { canOpenMiniApp, getMiniAppUrl, miniAppInlineKeyboard, quickActionsKeyboard } from './botUi.js';
@@ -254,21 +254,25 @@ export function initBotPolling() {
     const parsed = parseWeekArg(ctx.message?.text);
 
     let week: string;
-    if (!parsed) week = getLatestCompleteWeekKey(new Date());
+    if (!parsed) week = getCurrentIsoWeekTz(config.timezone);
     else if (parsed === 'INVALID') return ctx.reply(uiText.invalidWeekFormat);
-    else if (parsed === 'PREV') week = getPreviousWeekKey(getLatestCompleteWeekKey(new Date()));
+    else if (parsed === 'PREV') week = getPreviousWeekKey(getCurrentIsoWeekTz(config.timezone));
     else week = parsed;
 
     const data = await fetchWeekly(String(p._id), week);
     if (process.env.NODE_ENV !== 'production') {
       try {
         const d: any = data || {};
-        console.log('[bot:/metrics]', {
-          week,
-          df: d?.df?.count ?? 0,
-          cfrDen: d?.cfr?.denominator ?? 0,
-          ltSamples: d?.leadTime?.samples ?? 0,
-        });
+        console.log(
+          '[bot:/metrics]',
+          {
+            week,
+            range: d?.weekRange?.label,
+            df: d?.df?.count ?? 0,
+            cfrDen: d?.cfr?.denominator ?? 0,
+            ltSamples: d?.leadTime?.samples ?? 0,
+          },
+        );
       } catch {}
     }
     await ctx.reply(fmtWeekly(data));
