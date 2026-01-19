@@ -91,8 +91,17 @@ jobs:
             rm -f "$ZIP"
 
             cd /opt/dora
-            docker compose build api
+
+            if [ -f .rebuild_api_image ]; then
+              echo "[deploy] rebuild flag found -> docker compose build api"
+              docker compose build api
+              rm -f .rebuild_api_image
+            else
+              echo "[deploy] rebuild flag not found -> skip build"
+            fi
+            
             docker compose up -d --no-deps --force-recreate api
+
 
             for i in $(seq 1 60); do
               docker compose exec -T api wget -qO- http://127.0.0.1:8080/health >/dev/null && break
