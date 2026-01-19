@@ -15,7 +15,7 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
 
   // 1) забираем все события недели по проекту
   const events = (await EventModel.find({ projectId: pid, ts: { $gte: from, $lt: to } })
-    .select('ts type repoId branch prId env meta')
+    .select('ts type repoId branch meta')
     .sort({ ts: 1 })
     .lean()) as Pick<EventDoc, 'ts' | 'type' | 'env' | 'meta' | 'prId' | 'branch'>[];
 
@@ -35,7 +35,7 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
   function deploymentGroupKey(e: any): string {
     const id = e?.meta?.deploymentId ?? e?.meta?.statusId;
     if (id != null) return `id:${id}`;
-    const env = (e?.meta?.env || e?.env || '') as string;
+    const env = (e?.meta?.env || '') as string;
     const repoFullName = (e?.meta?.repoFullName || '') as string;
     const sha = (e?.meta?.sha || '') as string;
     return `${repoFullName}:${sha}:${env}`;
@@ -92,18 +92,14 @@ export async function getWeekly(projectId: Types.ObjectId | string, week: string
     }
 
     // 2) fallback: матч по номеру PR (meta.prNumber или prId) + (опционально) repoFullName
-    const prNum =
-      (typeof m.meta?.prNumber === 'number' ? m.meta.prNumber : undefined) ??
-      (typeof (m as any).prId === 'number' ? (m as any).prId : undefined);
+    const prNum = typeof m.meta?.prNumber === 'number' ? m.meta.prNumber : undefined;
 
     if (!prNum) continue;
 
     const repo = m.meta?.repoFullName;
 
     const candidates = openEvents.filter((o) => {
-      const oNum =
-        (typeof o.meta?.prNumber === 'number' ? o.meta.prNumber : undefined) ??
-        (typeof (o as any).prId === 'number' ? (o as any).prId : undefined);
+      const oNum = typeof o.meta?.prNumber === 'number' ? o.meta.prNumber : undefined;
 
       if (oNum !== prNum) return false;
       if (repo && o.meta?.repoFullName && o.meta.repoFullName !== repo) return false;

@@ -5,7 +5,7 @@ import { ProjectModel } from '../models/Project.js';
 import { RepoModel } from '../models/Repo.js';
 import { randomBytes } from 'crypto';
 import { fmtWeekly, getCurrentIsoWeekTz } from '../utils.js';
-import { getLatestCompleteWeekKey, getPreviousWeekKey } from '../utils/week.js';
+import { getLatestCompleteWeekKey, getPreviousWeekKey, getCurrentIsoWeek } from '../utils/week.js';
 import { uiText } from './uiText.js';
 import { canOpenMiniApp, getMiniAppUrl, miniAppInlineKeyboard, quickActionsKeyboard } from './botUi.js';
 
@@ -188,14 +188,10 @@ export function initBotPolling() {
         $set: {
           'settings.github.installationId': installationId,
           'settings.github.updatedAt': new Date(),
-          // keep existing canonical/legacy locations in sync
-          githubInstallationId: installationId,
-          'github.installationId': installationId,
-          'github.updatedAt': new Date(),
         },
       };
       if (repoFullName && typeof repoFullName === 'string' && repoFullName.includes('/')) {
-        update.$addToSet = { 'settings.github.repos': repoFullName, 'github.repos': repoFullName };
+        update.$addToSet = { 'settings.github.repos': repoFullName };
       }
       await ProjectModel.updateOne({ _id: p._id }, update);
 
@@ -304,7 +300,7 @@ export function initBotPolling() {
     const p = await ProjectModel.findOne({ chatId: ctx.chat.id }).lean();
     if (!p) return ctx.reply(uiText.mustStartFirst);
 
-    const week = getLatestCompleteWeekKey(new Date());
+    const week = getCurrentIsoWeekTz(config.timezone);
     let st: any = null;
     try {
       const res = await fetch(

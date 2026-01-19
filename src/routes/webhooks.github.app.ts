@@ -99,7 +99,7 @@ export default async function githubAppWebhook(app: FastifyInstance) {
       }
 
       const project = await ProjectModel.findOne({
-        $or: [{ 'settings.github.installationId': installationId }, { 'github.installationId': installationId }],
+        'settings.github.installationId': installationId,
       }).lean();
       if (!project?._id) {
         app.log.warn(
@@ -127,27 +127,15 @@ export default async function githubAppWebhook(app: FastifyInstance) {
         const repos: string[] = Array.isArray(reposRaw)
           ? reposRaw.map((r: any) => String(r?.full_name || '')).filter(Boolean)
           : [];
-        await ProjectModel.updateOne(
-          { _id: project._id },
-          {
-            $set: {
-              githubInstallationId: installationId,
-              githubAccountLogin: accountLogin,
-              githubInstalledAt: new Date(),
-              'settings.github.installationId': installationId,
-              'settings.github.accountLogin': accountLogin,
-              'settings.github.accountType': accountType,
-              'settings.github.repos': repos,
-              'settings.github.updatedAt': new Date(),
-              // keep legacy location for backwards compatibility
-              'github.installationId': installationId,
-              'github.accountLogin': accountLogin,
-              'github.accountType': accountType,
-              'github.repos': repos,
-              'github.updatedAt': new Date(),
-            },
+        await ProjectModel.updateOne({ _id: project._id }, {
+          $set: {
+            'settings.github.installationId': installationId,
+            'settings.github.accountLogin': accountLogin,
+            'settings.github.accountType': accountType,
+            'settings.github.repos': repos,
+            'settings.github.updatedAt': new Date(),
           },
-        );
+        });
       }
 
       // resolve repoId if repository is present
@@ -195,7 +183,7 @@ export default async function githubAppWebhook(app: FastifyInstance) {
           repoId: docRepoId,
           source: 'github',
         };
-        if ((ev.meta as any)?.env === 'prod') doc.env = 'prod';
+        // top-level env is deprecated; rely on meta.env and meta.deploymentEnvironment
         if (ev.dedupKey) doc.dedupKey = ev.dedupKey;
         return doc;
       });

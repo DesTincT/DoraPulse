@@ -98,22 +98,10 @@ function toProjectContext(input: any, devBypass: boolean): AuthedProjectContext 
   const accessKey = typeof input?.accessKey === 'string' ? input.accessKey : undefined;
 
   const installationId: number | undefined =
-    typeof input?.githubInstallationId === 'number'
-      ? input.githubInstallationId
-      : typeof input?.settings?.github?.installationId === 'number'
-        ? input.settings.github.installationId
-        : typeof input?.github?.installationId === 'number'
-          ? input.github.installationId
-          : undefined;
+    typeof input?.settings?.github?.installationId === 'number' ? input.settings.github.installationId : undefined;
 
   const accountLogin: string | undefined =
-    typeof input?.githubAccountLogin === 'string'
-      ? input.githubAccountLogin
-      : typeof input?.settings?.github?.accountLogin === 'string'
-        ? input.settings.github.accountLogin
-        : typeof input?.github?.accountLogin === 'string'
-          ? input.github.accountLogin
-          : undefined;
+    typeof input?.settings?.github?.accountLogin === 'string' ? input.settings.github.accountLogin : undefined;
 
   const prodEnvironments: string[] = Array.isArray(input?.settings?.prodEnvironments)
     ? input.settings.prodEnvironments.map((x: any) => String(x)).filter(Boolean)

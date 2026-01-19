@@ -54,13 +54,8 @@ export default async function githubAppCallbackRoutes(app: FastifyInstance) {
       { _id: project._id },
       {
         $set: {
-          githubInstallationId: installationId,
-          githubInstalledAt: new Date(),
           'settings.github.installationId': installationId,
           'settings.github.updatedAt': new Date(),
-          // keep legacy location for backwards compatibility
-          'github.installationId': installationId,
-          'github.updatedAt': new Date(),
         },
       },
     );

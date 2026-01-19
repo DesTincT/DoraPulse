@@ -148,7 +148,6 @@ export default async function githubWebhook(app: FastifyInstance) {
             ts: new Date(pr.created_at || now),
             type: 'pr_open',
             branch: baseRef,
-            prId: payload.number,
             bodyPreview: String(pr.title || '').slice(0, 300),
             meta: {
               prNumber: payload.number,
@@ -177,12 +176,11 @@ export default async function githubWebhook(app: FastifyInstance) {
           // Per project configuration: count merges only into the configured production branch.
           // Still upsert the PR domain model above for debugging/selftest.
           if (!prodBranch || baseRef === prodBranch) {
-            const ev: any = {
+          const ev: any = {
               ts: new Date(pr.merged_at || now),
               // normalize legacy type to canonical at save-time
               type: 'pr_merged',
               branch: baseRef,
-              prId: payload.number,
               bodyPreview: String(pr.title || '').slice(0, 300),
               meta: {
                 prNumber: payload.number,
@@ -221,7 +219,6 @@ export default async function githubWebhook(app: FastifyInstance) {
           const ev: any = {
             ts: new Date(wr.updated_at || now),
             type: conclusion === 'success' ? 'deploy_succeeded' : 'deploy_failed',
-            env: 'prod',
             branch: wr.head_branch,
             bodyPreview: name.slice(0, 300),
             meta: {
@@ -246,17 +243,12 @@ export default async function githubWebhook(app: FastifyInstance) {
       const toInsert = events.map((e) => {
         const normalizedType = e.type === 'pr_merge' ? 'pr_merged' : e.type;
         const baseMeta = e.meta ?? {};
-        const prId = typeof e.prId === 'number' ? e.prId : (baseMeta?.prNumber ?? undefined);
         const meta = { ...baseMeta };
-        if (prId != null && meta.prNumber == null) {
-          meta.prNumber = prId;
-        }
         const docRepoId =
           repoId ?? (meta.repoId && Types.ObjectId.isValid(meta.repoId) ? new Types.ObjectId(meta.repoId) : undefined);
         return {
           ...e,
           type: normalizedType,
-          prId,
           meta,
           ts: new Date(e.ts),
           projectId: new Types.ObjectId(project._id),
@@ -288,9 +280,7 @@ export default async function githubWebhook(app: FastifyInstance) {
                     projectId: doc.projectId,
                     repoId: doc.repoId,
                     branch: doc.branch,
-                    prId: doc.prId,
                     bodyPreview: doc.bodyPreview,
-                    env: doc.env,
                     dedupKey: doc.dedupKey,
                     meta: { $mergeObjects: [{ $ifNull: ['$meta', {}] }, doc.meta || {}] },
                   },
