@@ -91,13 +91,14 @@ jobs:
             rm -f "$ZIP"
 
             cd /opt/dora
-            docker compose build --no-cache api
+            docker compose build api
             docker compose up -d --no-deps --force-recreate api
 
-            for i in $(seq 1 30); do
-              curl -fsS https://api.destinct.ru/health && break
-              sleep 2
+            for i in $(seq 1 60); do
+              docker compose exec -T api wget -qO- http://127.0.0.1:8080/health >/dev/null && break
+              sleep 1
             done
+
             curl -fsS https://api.destinct.ru/health
 
 
