@@ -1,5 +1,5 @@
 'use strict';
-/* global db */
+/* global db, printjson, print */
 /**
  * Model cleanup (Stage 1: safe backfills)
  *
@@ -10,6 +10,18 @@
  *
  * Run with: mongosh <uri> apps-api --file scripts/migrations/0005_model_cleanup.js
  */
+
+// Fallback for environments without printjson (e.g., if executed via Node by mistake)
+if (typeof printjson !== 'function') {
+  // eslint-disable-next-line no-var
+  var printjson = function (obj) {
+    try {
+      if (typeof print === 'function') return print(JSON.stringify(obj));
+    } catch {}
+    // eslint-disable-next-line no-console
+    if (typeof console !== 'undefined' && console.log) console.log(obj);
+  };
+}
 
 function setIfNull(obj, path, value) {
   const parts = path.split('.');
