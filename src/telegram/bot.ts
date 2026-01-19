@@ -137,13 +137,13 @@ export function initBotPolling() {
   // /help — concise 5-step setup
   bot.command('help', async (ctx) => {
     const steps = [
-      '1) /start — создайте/выберите проект',
-      '2) Установите GitHub App и выберите репозитории',
-      '3) В мини‑приложении укажите прод‑окружения',
-      '4) Запустите деплой/воркфлоу, чтобы появились данные',
-      '5) Смотрите метрики в /metrics и откройте Mini App',
+      '1) /start — create or select a project',
+      '2) Install the GitHub App and select repositories',
+      '3) In the Mini App, set production environment names',
+      '4) Trigger a deploy/workflow to generate data',
+      '5) View metrics in /metrics and open the Mini App',
       '',
-      'Если нужны подробности — вынесем расширенную инструкцию позже.',
+      "If you need more details, we'll add expanded docs later.",
     ].join('\n');
     await ctx.reply(steps);
   });
