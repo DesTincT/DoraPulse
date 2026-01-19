@@ -92,7 +92,7 @@ cron.schedule(
         if (!p.chatId) continue;
         try {
           const iso = getCurrentIsoWeekTz(tz);
-          const text = `📝 Pulse (неделя ${iso})\nОцените Developer Experience (1–5):`;
+          const text = `📝 Pulse (${iso})\nОцените Developer Experience (1–5):`;
 
           // reply_markup как «сырой» JSON (без Markup — мы в кроне, без Telegraf контекста)
           await tg.sendMessage(p.chatId as any, text, {

@@ -358,7 +358,7 @@ export function initBotPolling() {
   async function handlePulse(ctx: any) {
     const week = getLatestCompleteWeekKey(new Date());
     await ctx.reply(
-      `📝 Pulse (неделя ${week})\nОцените Developer Experience (1–5):`,
+      `📝 Pulse (${week})\nОцените Developer Experience (1–5):`,
       Markup.inlineKeyboard([[1, 2, 3, 4, 5].map((n) => Markup.button.callback(`${n}`, `pulse:score:${n}:${week}`))]),
     );
   }

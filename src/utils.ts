@@ -10,6 +10,7 @@ import {
   getWeekRangeExclusive,
   getCurrentIsoWeek,
   getIsoWeekDateRange,
+  getIsoWeekMinus,
 } from './utils/week.js';
 import { config } from './config.js';
 
@@ -95,8 +96,7 @@ export function fmtWeekly(m: any) {
   const week = m?.week ?? '—';
   const rangeLabel: string | null =
     (m?.weekRange && typeof m.weekRange.label === 'string' && m.weekRange.label) || null;
-  const header =
-    rangeLabel && week ? `📅 Неделя: ${week} (${rangeLabel})` : `📅 Неделя: ${week}`;
+  const header = rangeLabel && week ? `📅 ${week} (${rangeLabel})` : `📅 ${week}`;
 
   return [
     header,
@@ -116,3 +116,4 @@ export function currentIsoWeek() {
 export const getCurrentIsoWeekTz = (tz?: string) => getCurrentIsoWeek(tz ?? config.timezone);
 export const getIsoWeekDateRangeTz = (week: string, tz?: string) =>
   getIsoWeekDateRange(week, tz ?? config.timezone);
+export const getIsoWeekMinusTz = (week: string, n: number) => getIsoWeekMinus(week, n);
