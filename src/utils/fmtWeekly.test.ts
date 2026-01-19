@@ -12,6 +12,6 @@ test('fmtWeekly includes week and range label', () => {
     mttr: { p50: 0, p90: 0, incidents: 0 },
     coverage: { leadTime: { prodDeploys: 0, prodDeploysWithSha: 0, commitsResolved: 0 }, incidentsLinked: 0 },
   });
-  assert.ok(text.startsWith('📅 Неделя: 2026-W01 (29.12–04.01)'));
+  assert.ok(text.startsWith('📅 2026-W01 (29.12–04.01)'));
 });
 
