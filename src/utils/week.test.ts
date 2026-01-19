@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { getIsoWeekDateRange } from './week.js';
+import { getIsoWeekDateRange, getIsoWeekMinus } from './week.js';
 import { formatInTimeZone } from 'date-fns-tz';
 
 const TZ = 'Europe/Berlin';
@@ -26,6 +26,11 @@ test('getIsoWeekDateRange label for 2026-W01 (Europe/Berlin)', () => {
   // sanity: dates are ISO strings
   assert.ok(typeof r.startDate.toISOString() === 'string');
   assert.ok(typeof r.endDate.toISOString() === 'string');
+});
+
+test('getIsoWeekMinus across year boundary', () => {
+  const prev = getIsoWeekMinus('2026-W01', 1);
+  assert.equal(prev, '2025-W52');
 });
 
 import assert from 'node:assert/strict';

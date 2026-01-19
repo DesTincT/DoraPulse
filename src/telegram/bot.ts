@@ -4,10 +4,11 @@ import { config } from '../config.js';
 import { ProjectModel } from '../models/Project.js';
 import { RepoModel } from '../models/Repo.js';
 import { randomBytes } from 'crypto';
-import { fmtWeekly, getCurrentIsoWeekTz } from '../utils.js';
+import { fmtWeekly, getCurrentIsoWeekTz, getIsoWeekDateRangeTz, fmtDuration } from '../utils.js';
 import { getLatestCompleteWeekKey, getPreviousWeekKey, getCurrentIsoWeek } from '../utils/week.js';
 import { uiText } from './uiText.js';
 import { canOpenMiniApp, getMiniAppUrl, miniAppInlineKeyboard, quickActionsKeyboard } from './botUi.js';
+import { PulseResponseModel } from '../models/PulseResponse.js';
 
 function parseWeekArg(text?: string) {
   // text: "/metrics 2025-W51" | "/metrics" | "/metrics@MyBot 2025-W51"
@@ -59,7 +60,6 @@ export function initBotPolling() {
     const commandsEn = [
       { command: 'start', description: 'Start and link a project' },
       { command: 'help', description: 'Help' },
-      { command: 'link', description: 'GitHub webhook instructions' },
       { command: 'metrics', description: 'Show metrics for a week' },
       { command: 'verify', description: 'Why are metrics zero? (self-test)' },
       { command: 'digest', description: 'Send weekly digest' },
@@ -69,7 +69,6 @@ export function initBotPolling() {
     const commandsRu = [
       { command: 'start', description: 'Старт и привязка проекта' },
       { command: 'help', description: 'Помощь' },
-      { command: 'link', description: 'Инструкция по GitHub webhook' },
       { command: 'metrics', description: 'Метрики за неделю' },
       { command: 'verify', description: 'Почему нули? (самопроверка)' },
       { command: 'digest', description: 'Еженедельный дайджест' },
@@ -135,38 +134,21 @@ export function initBotPolling() {
     }
   });
 
-  // /help
+  // /help — concise 5-step setup
   bot.command('help', async (ctx) => {
-    // Telegram MarkdownV2: keep formatting predictable, especially for code blocks.
-    const escapeMdV2 = (s: string) => s.replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-
-    const commands = ['*Available commands:*', ...uiText.helpLines.slice(1).map(escapeMdV2)].join('\n');
-
-    const howToHeader = '*Enable deployment metrics DF/CFR:*';
-    const howToBody = uiText.helpDoraDeployHowToLines.map((line) => {
-      // Preserve inline code marked with backticks by escaping only outside of them.
-      // Simple approach: if a line contains backticks, we assume it’s intentional and keep it as-is.
-      return line.includes('`') ? line : escapeMdV2(line);
-    });
-    const howTo = [howToHeader, ...howToBody, '', '```yaml', uiText.helpDoraDeployWorkflowYaml.trimEnd(), '```'].join(
-      '\n',
-    );
-
-    await ctx.reply(commands, { parse_mode: 'MarkdownV2', link_preview_options: { is_disabled: true } });
-    await ctx.reply(howTo, { parse_mode: 'MarkdownV2', link_preview_options: { is_disabled: true } });
+    const steps = [
+      '1) /start — создайте/выберите проект',
+      '2) Установите GitHub App и выберите репозитории',
+      '3) В мини‑приложении укажите прод‑окружения',
+      '4) Запустите деплой/воркфлоу, чтобы появились данные',
+      '5) Смотрите метрики в /metrics и откройте Mini App',
+      '',
+      'Если нужны подробности — вынесем расширенную инструкцию позже.',
+    ].join('\n');
+    await ctx.reply(steps);
   });
 
-  // /link — GitHub Webhook instruction
-  bot.command('link', async (ctx) => {
-    const p = await ProjectModel.findOne({ chatId: ctx.chat.id }).lean();
-    if (!p) return ctx.reply(uiText.mustStartFirst);
-    const lines = uiText.startWebhookInfo(
-      config.publicAppUrl,
-      p.accessKey,
-      config.webhookSecret || 'devsecret (local)',
-    );
-    await ctx.reply(['🔗 GitHub Webhook:', ...lines.slice(1)].join('\n'));
-  });
+  // /link — removed
 
   // /link_install <installationId> [repoFullName]
   // Admin/private-chat helper to bind a GitHub App installation to the current project.
@@ -216,21 +198,54 @@ export function initBotPolling() {
       await ctx.answerCbQuery(uiText.mustStartFirst);
       return;
     }
-    // отправим на API (если эндпоинт есть) — иначе молча игнорим ошибку
+    // Persist rating (upsert per user/week)
     try {
-      await fetch(`${config.publicAppUrl}/pulse/answer`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          projectId: String(p._id),
-          userTgId: ctx.from?.id,
-          week,
-          answers: { satisfaction: score, ciUnder10min: null, blocker: null },
-        }),
-      });
-    } catch {}
-    await ctx.answerCbQuery('Thanks!');
-    await ctx.editMessageText(uiText.pulseThanks(week, score));
+      const userId = Number(ctx.from?.id);
+      const now = new Date();
+      await PulseResponseModel.updateOne(
+        { projectId: p._id, week, userId },
+        { $set: { rating: score, updatedAt: now }, $setOnInsert: { createdAt: now } },
+        { upsert: true },
+      );
+      // Aggregate results for this week
+      const cur = await PulseResponseModel.aggregate([
+        { $match: { projectId: p._id, week } },
+        {
+          $group: {
+            _id: '$rating',
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+      const total = cur.reduce((s: number, r: any) => s + (r.count || 0), 0);
+      const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      for (const r of cur) {
+        // eslint-disable-next-line security/detect-object-injection
+        counts[Number(r._id)] = Number(r.count || 0);
+      }
+      const avg =
+        total > 0
+          ? (
+              (1 * counts[1] + 2 * counts[2] + 3 * counts[3] + 4 * counts[4] + 5 * counts[5]) /
+              Math.max(1, total)
+            ).toFixed(1)
+          : '0.0';
+      const weekRange = `${week}${''}`; // label will be included in future if needed
+      const results = [
+        `📊 Pulse — ${week}`,
+        `n=${total}, avg=${avg}`,
+        `1: ${counts[1]}`,
+        `2: ${counts[2]}`,
+        `3: ${counts[3]}`,
+        `4: ${counts[4]}`,
+        `5: ${counts[5]}`,
+      ].join('\n');
+      await ctx.answerCbQuery('Saved!');
+      await ctx.editMessageText(`${uiText.pulseThanks(week, score)}\n\n${results}`);
+    } catch {
+      await ctx.answerCbQuery('Saved!');
+      await ctx.editMessageText(uiText.pulseThanks(week, score));
+    }
   });
 
   // /webapp — open Mini‑App button (if URL exists)
@@ -277,15 +292,67 @@ export function initBotPolling() {
   async function handleDigest(ctx: any) {
     const p = await ProjectModel.findOne({ chatId: ctx.chat.id }).lean();
     if (!p) return ctx.reply(uiText.mustStartFirst);
-    const week = getLatestCompleteWeekKey(new Date());
-    const data = await fetchWeekly(String(p._id), week);
-    const text = [
-      uiText.weeklyDigestTitle,
-      fmtWeekly(data),
-      '',
-      'ℹ️ This is a demo digest. The full version will include trends and anomalies.',
+    const thisWeek = getCurrentIsoWeekTz(config.timezone);
+    const prevWeek = getPreviousWeekKey(thisWeek);
+    const [cur, prev] = await Promise.all([
+      fetchWeekly(String(p._id), thisWeek),
+      fetchWeekly(String(p._id), prevWeek),
+    ]);
+    const r1 = getIsoWeekDateRangeTz(thisWeek)?.label || '';
+    const r2 = getIsoWeekDateRangeTz(prevWeek)?.label || '';
+
+    function fmtPct(v?: number) {
+      const x = typeof v === 'number' && Number.isFinite(v) ? v : 0;
+      return `${(x * 100).toFixed(1)}%`;
+    }
+    function delta(a?: number, b?: number) {
+      const x = (typeof a === 'number' ? a : 0) - (typeof b === 'number' ? b : 0);
+      const s = x === 0 ? '±0' : x > 0 ? `+${x}` : `${x}`;
+      return s;
+    }
+    function deltaPct(a?: number, b?: number) {
+      const x = (typeof a === 'number' ? a : 0) - (typeof b === 'number' ? b : 0);
+      const s = x === 0 ? '±0.0%' : x > 0 ? `+${(x * 100).toFixed(1)}%` : `${(x * 100).toFixed(1)}%`;
+      return s;
+    }
+    function ddur(a?: number, b?: number) {
+      const x = (typeof a === 'number' ? a : 0) - (typeof b === 'number' ? b : 0);
+      const s = x === 0 ? '±0' : x > 0 ? `+${fmtDuration(x)}` : `-${fmtDuration(Math.abs(x))}`;
+      return s;
+    }
+
+    const dcur: any = cur || {};
+    const dprev: any = prev || {};
+    const dfNow = Number(dcur?.df?.count ?? 0);
+    const dfPrev = Number(dprev?.df?.count ?? 0);
+
+    const cfrNow = typeof dcur?.cfr?.value === 'number' ? dcur.cfr.value : 0;
+    const cfrPrev = typeof dprev?.cfr?.value === 'number' ? dprev.cfr.value : 0;
+
+    const ltN = Number(dcur?.leadTime?.samples ?? 0);
+    const ltP50 = Number(dcur?.leadTime?.p50 ?? 0);
+    const ltP90 = Number(dcur?.leadTime?.p90 ?? 0);
+    const ltP50Prev = Number(dprev?.leadTime?.p50 ?? 0);
+    const ltP90Prev = Number(dprev?.leadTime?.p90 ?? 0);
+
+    const prP50 = Number(dcur?.prCycleTime?.p50 ?? 0);
+    const prP90 = Number(dcur?.prCycleTime?.p90 ?? 0);
+    const prP50Prev = Number(dprev?.prCycleTime?.p50 ?? 0);
+    const prP90Prev = Number(dprev?.prCycleTime?.p90 ?? 0);
+
+    const mttrP50 = Number(dcur?.mttr?.p50 ?? 0);
+    const mttrP50Prev = Number(dprev?.mttr?.p50 ?? 0);
+
+    const lines = [
+      `📅 ${thisWeek} (${r1}) vs ${prevWeek} (${r2})`,
+      `🚀 DF: ${dfNow} (${delta(dfNow, dfPrev)})`,
+      `🔁 CFR: ${fmtPct(cfrNow)} (${deltaPct(cfrNow, cfrPrev)})`,
+      `⏱️ Lead Time p50: ${fmtDuration(ltP50)} (${ddur(ltP50, ltP50Prev)})${ltN >= 10 ? `, p90: ${fmtDuration(ltP90)} (${ddur(ltP90, ltP90Prev)})` : ''}  n=${ltN}`,
+      `🔁 PR Cycle p50: ${fmtDuration(prP50)} (${ddur(prP50, prP50Prev)})${prP90 > 0 ? `, p90: ${fmtDuration(prP90)} (${ddur(prP90, prP90Prev)})` : ''}`,
+      `🧯 MTTR p50: ${fmtDuration(mttrP50)} (${ddur(mttrP50, mttrP50Prev)})`,
     ].join('\n');
-    await ctx.replyWithMarkdown(text);
+
+    await ctx.reply(lines);
   }
 
   async function handlePulse(ctx: any) {
