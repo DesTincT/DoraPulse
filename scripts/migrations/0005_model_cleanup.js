@@ -1,4 +1,5 @@
 'use strict';
+/* eslint-disable no-unused-vars, no-empty */
 /* global db, printjson, print */
 /**
  * Model cleanup (Stage 1: safe backfills)
@@ -13,12 +14,10 @@
 
 // Fallback for environments without printjson (e.g., if executed via Node by mistake)
 if (typeof printjson !== 'function') {
-  // eslint-disable-next-line no-var
-  var printjson = function (obj) {
+  const printjson = function (obj) {
     try {
       if (typeof print === 'function') return print(JSON.stringify(obj));
-    } catch {}
-    // eslint-disable-next-line no-console
+    } catch (e) {}
     if (typeof console !== 'undefined' && console.log) console.log(obj);
   };
 }
