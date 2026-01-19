@@ -101,3 +101,13 @@ export function getIsoWeekDateRange(
 
   return { startDate, endDate, label };
 }
+
+/**
+ * Subtract n ISO weeks from a given week key.
+ */
+export function getIsoWeekMinus(weekKey: string, n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return weekKey;
+  const { from } = getWeekRangeExclusive(weekKey);
+  const d = new Date(from.getTime() - n * 7 * 24 * 60 * 60 * 1000);
+  return getIsoWeekKey(d);
+}
