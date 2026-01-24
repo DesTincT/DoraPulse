@@ -51,17 +51,17 @@ export function getLastIsoWeek(): string {
 export function fmtDuration(sec?: number) {
   if (!sec || sec <= 0) return '—';
 
-  if (sec < 60) return `${Math.round(sec)}с`;
+  if (sec < 60) return `${Math.round(sec)}s`;
 
   if (sec < 3600) {
     const m = Math.floor(sec / 60);
     const s = Math.round(sec % 60);
-    return s ? `${m}м ${s}с` : `${m}м`;
+    return s ? `${m}m ${s}s` : `${m}m`;
   }
 
   const h = Math.floor(sec / 3600);
   const m = Math.round((sec % 3600) / 60);
-  return m ? `${h}ч ${m}м` : `${h}ч`;
+  return m ? `${h}h ${m}m` : `${h}h`;
 }
 
 export function hasAnyData(m: any): boolean {
@@ -102,8 +102,8 @@ export function fmtWeekly(m: any) {
     header,
     `🚀 Deployment Frequency: ${df}`,
     // `🔁 CFR: ${cfr}`,
-    `⏱️ Lead Time for Changes p50/p90: ${doraLt50} / ${doraLt90}`,
-    `🔁 PR Cycle Time p50/p90: ${prCt50} / ${prCt90}`,
+    `⏱️ Lead Time for Changes: ${doraLt50} / ${doraLt90}`,
+    `🔁 PR Cycle Time: ${prCt50} / ${prCt90}`,
     // `🧯 MTTR p50: ${mttr}`,
   ].join('\n');
 }
