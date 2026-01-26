@@ -112,7 +112,7 @@ jobs:
 
 
             # sanity-check: убедимся, что новый код реально внутри контейнера
-            docker compose exec api sh -lc 'node -p "require(\"fs\").statSync(\"dist/index.js\").mtime.toISOString()"'
+            docker compose exec api sh -lc 'node -p "require(\"fs\").statSync(\"dist/index.js\").mtime.toISOString()"' 
 
       # 3) Пометить статус success
       - name: Mark deployment success
