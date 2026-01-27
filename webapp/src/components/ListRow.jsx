@@ -15,4 +15,3 @@ export function ListRow({ title, subtitle, right, children, last = false }) {
     </div>
   );
 }
-

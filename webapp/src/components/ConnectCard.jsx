@@ -14,4 +14,3 @@ export function ConnectCard({ me, onInstall }) {
     </div>
   );
 }
-

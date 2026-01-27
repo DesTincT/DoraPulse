@@ -46,4 +46,3 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved, dis
     </ListRow>
   );
 }
-
