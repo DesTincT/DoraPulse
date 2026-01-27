@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'https://esm.sh/react@18';
-import { apiGet, apiPost } from '/webapp/src/api/client.js';
+import { useEffect, useMemo, useState } from 'react';
+import { apiGet, apiPost } from '../api/client.js';
 
 export function useEnvs(initData) {
   const [envs, setEnvs] = useState({ seenEnvs: [], selected: [] });

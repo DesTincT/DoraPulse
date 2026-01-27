@@ -36,14 +36,15 @@ jobs:
 
       - name: Install deps (for build)
         run: npm ci
-
-      - name: Build (tsc)
+      - name: Build API
         run: npm run build
+      - name: Build Webapp
+        run: npm run webapp:build
 
-      - name: Create deploy zip (dist + package*.json)
+      - name: Create deploy zip (dist + webapp/dist + package*.json)
         run: |
           rm -f dora-dist.zip
-          zip -r dora-dist.zip dist webapp package.json package-lock.json
+          zip -r dora-dist.zip dist webapp/dist package.json package-lock.json
 
       - name: Add VM to known_hosts
         run: |
@@ -99,7 +100,7 @@ jobs:
             else
               echo "[deploy] rebuild flag not found -> skip build"
             fi
-            
+
             docker compose up -d --no-deps --force-recreate api
 
 
@@ -112,7 +113,7 @@ jobs:
 
 
             # sanity-check: убедимся, что новый код реально внутри контейнера
-            docker compose exec api sh -lc 'node -p "require(\"fs\").statSync(\"dist/index.js\").mtime.toISOString()"' 
+            docker compose exec api sh -lc 'node -p "require(\"fs\").statSync(\"dist/index.js\").mtime.toISOString()"'
 
       # 3) Пометить статус success
       - name: Mark deployment success

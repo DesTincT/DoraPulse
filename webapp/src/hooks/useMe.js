@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'https://esm.sh/react@18';
-import { apiGet } from '/webapp/src/api/client.js';
+import { useEffect, useState } from 'react';
+import { apiGet } from '../api/client.js';
 
 export function useMe(initData) {
   const [me, setMe] = useState(null);

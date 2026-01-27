@@ -17,6 +17,7 @@
 #### Project
 
 Fields:
+
 - `name: string (required)`
 - `chatId: number (required)`
 - `accessKey: string (required)`
@@ -39,18 +40,22 @@ Fields:
 - `githubAccountLogin?: string` (legacy dup)
 
 Writes:
+
 - Create on `/start` and telegram auth bootstrap.
 - Update GitHub install on `routes/githubAppCallback.ts` (`$set` multiple duplicates), `routes/webhooks.github.app.ts` (lookup).
 - Update `settings.prodEnvironments` on `routes/webapp.ts` POST `/api/envs`.
 
 Reads:
+
 - Many routes read `settings.prodEnvironments`, `settings.prodRule.branch`, and GitHub installation via fallback in `middleware/telegramAuth.ts` and `routes/webhooks.github.app.ts`.
 
 Use:
+
 - `settings.*` are Active.
 - Top-level `github*` duplicates: Active (for compatibility) but should be migrated -> legacy.
 
 Recommendation:
+
 - Canonicalize to `settings.github.*` for install/account fields.
 - Keep `settings.prodEnvironments` as canonical.
 - Remove top-level `githubInstallationId`, `github*` after staged migration.
@@ -63,6 +68,7 @@ Risk of removing legacy: Medium (fallbacks exist, but ensure all readers updated
 #### Event
 
 Fields:
+
 - `ts: Date (required)`
 - `source: 'github' | 'manual' (required)`
 - `type: 'pr_open' | 'pr_merge' | 'pr_merged' | 'commit' | 'deploy_succeeded' | 'deploy_failed' | 'incident_open' | 'incident_resolved' (required)`
@@ -79,18 +85,22 @@ Fields:
 - `dedupKey?: string (unique with partial filter)`
 
 Writes:
+
 - In webhooks normalizers: `services/githubNormalizer.ts` for PRs, deployments, pushes (sets `meta.*`, `dedupKey`).
 
 Reads:
+
 - Metrics use `type`, `meta.deploymentEnvironment`, `meta.repoFullName`, `meta.sha`, fallback to legacy `env`, `prId` in `services/metricsService.ts`.
 - Selftest counts and filters by `type` and `meta.deploymentEnvironment`.
 - UI env discovery uses `distinct('meta.deploymentEnvironment')`.
 
 Use:
+
 - Canonical fields: `type`, `ts`, `meta.deploymentEnvironment`, `meta.repoFullName`, `meta.prNumber`.
 - Legacy: `prId`, `pr_merge`, top-level `env`.
 
 Recommendation:
+
 - Standardize `type` to `pr_merged` (keep reading `pr_merge` for a deprecation period).
 - Migrate `prId` -> `meta.prNumber` where missing.
 - Prefer `meta.deploymentEnvironment`; keep `env` only as UI/auxiliary.
@@ -103,6 +113,7 @@ Risk of removing legacy: Medium.
 #### WebhookDelivery
 
 Fields:
+
 - `provider: 'github' (required)`
 - `deliveryId: string (required, unique index)`
 - `projectId?: ObjectId (index)`
@@ -117,14 +128,17 @@ Fields:
 - `error?: string`
 
 Writes:
+
 - On webhook receipt/upsert and during processing result updates (`routes/webhooks.github*.ts`).
 
 Reads:
+
 - Selftest counts recent deliveries and last seen. Dedup tests check `seenCount`.
 
 Use: Active. No duplication issues.
 
 Recommendation:
+
 - Keep as is.
 
 Risk: Low.
@@ -134,6 +148,7 @@ Risk: Low.
 #### Incident
 
 Fields:
+
 - `projectId: ObjectId (required)`
 - `service: string (required)`
 - `openedAt: Date (required)`
@@ -143,9 +158,11 @@ Fields:
 - `severity: 'SEV1' | 'SEV2' | 'SEV3' (required)`
 
 Writes:
+
 - By external incidents import/create endpoints (planned); used by MTTR computation.
 
 Reads:
+
 - `services/metricsService.ts` for MTTR and counts.
 
 Use: Active for MTTR input.
@@ -159,6 +176,7 @@ Risk: Low.
 #### PullRequest
 
 Fields:
+
 - `projectId: ObjectId (required, index)`
 - `repoFullName: string (required)`
 - `installationId?: number`
@@ -174,9 +192,11 @@ Fields:
 - `updatedAt: Date (required)`
 
 Writes:
+
 - `services/pullRequestService.ts` via `upsertPullRequest`.
 
 Reads:
+
 - Minimal currently (signals in selftest only indirectly).
 
 Use: Active (ingestion), but not yet powering UI.
@@ -190,15 +210,18 @@ Risk: Low.
 #### CommitCache
 
 Fields:
+
 - `repoFullName: string (required, unique with sha)`
 - `sha: string (required)`
 - `committedAt: Date (required)`
 - `fetchedAt: Date (required)`
 
 Writes:
+
 - `services/metricsService.ts` when resolving commit times from GitHub.
 
 Reads:
+
 - Same service for caching lookups.
 
 Use: Active.
@@ -212,12 +235,14 @@ Risk: Low.
 #### Commit
 
 Fields:
+
 - `projectId: ObjectId (required)`
 - `repoFullName: string (required)`
 - `sha: string (required)`
 - `ts: Date (required)`
 
 Writes/Reads:
+
 - Not referenced in current runtime code.
 
 Use: Dead (MVP).
@@ -229,15 +254,18 @@ Recommendation: Remove or park for vNext. Risk: Low.
 #### Repo
 
 Fields:
+
 - `projectId: ObjectId (required)`
 - `owner: string (required)`
 - `name: string (required)`
 - `defaultBranch: string (required, default 'main')`
 
 Writes:
+
 - Created on project bootstrap in bot/tests.
 
 Reads:
+
 - Limited (tests; future mapping).
 
 Use: Active (light).
@@ -253,6 +281,7 @@ Risk: Low.
 Fields: aggregate metrics per repo/week.
 
 Writes/Reads:
+
 - Not used by current services/routes.
 
 Use: Dead (MVP).
@@ -275,12 +304,15 @@ Recommendation: Remove or implement caching using this model in vNext. Risk: Low
   - Canonical `meta.deploymentEnvironment`; auxiliary `meta.env` (prod/stage) and top-level `env` exist; code prefers `meta.deploymentEnvironment`.
 
 Fields written but not read:
+
 - Project: `githubInstalledAt`, `githubAccountLogin` (rarely/never read; UI computes from `req.project` context).
 
 Fields read but not written:
+
 - None critical; some legacy reads exist only for compatibility.
 
 Potential update conflicts:
+
 - WebhookDelivery `seenCount` uses `$inc` on upsert path; current logic is consistent.
 
 ---
@@ -305,6 +337,7 @@ Potential update conflicts:
 ### Migration plan
 
 Stage 1 (safe):
+
 - Backfill canonical fields if missing:
   - In `Project`: set `settings.github.installationId` and `settings.github.accountLogin` from legacy locations if null.
   - In `Event`: set `meta.prNumber` from `prId` if missing.
@@ -312,6 +345,7 @@ Stage 1 (safe):
 - Deploy with fallback reads intact.
 
 Stage 2 (cleanup):
+
 - Remove legacy fields:
   - `Project`: unset `githubInstallationId`, `githubInstalledAt`, `githubAccountLogin`, and `github.*` duplicates.
   - `Event`: unset `prId`; standardize `type='pr_merged'` for PR merges (optional backfill).
@@ -331,4 +365,3 @@ Stage 2 (cleanup):
   - `src/services/metricsService.ts`
   - `src/services/selftestService.ts`
   - `src/routes/webapp.ts` (env discovery)
-

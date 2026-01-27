@@ -63,9 +63,20 @@ cron.schedule(
           const dfPrev = Number(prev?.df?.count ?? 0);
           const cfrNow = typeof cur?.cfr?.value === 'number' ? cur.cfr.value : 0;
           const cfrPrev = typeof prev?.cfr?.value === 'number' ? prev.cfr.value : 0;
-          const digest = [`📅 ${targetWeek} (${r1}) vs ${compareWeek} (${r2})`, `🚀 DF: ${dfNow} (${delta(dfNow, dfPrev)})`, `🔁 CFR: ${fmtPct(cfrNow)} (${deltaPct(cfrNow, cfrPrev)})`].join('\n');
+          const digest = [
+            `📅 ${targetWeek} (${r1}) vs ${compareWeek} (${r2})`,
+            `🚀 DF: ${dfNow} (${delta(dfNow, dfPrev)})`,
+            `🔁 CFR: ${fmtPct(cfrNow)} (${deltaPct(cfrNow, cfrPrev)})`,
+          ].join('\n');
 
-          const text = [`📊 DORA Pulse — недельный дайджест`, weeklyText, '', digest, '', `Проект: ${p.name ?? p._id}`].join('\n');
+          const text = [
+            `📊 DORA Pulse — недельный дайджест`,
+            weeklyText,
+            '',
+            digest,
+            '',
+            `Проект: ${p.name ?? p._id}`,
+          ].join('\n');
 
           await tg.sendMessage(p.chatId as any, text, { parse_mode: 'Markdown' });
         } catch (e) {

@@ -220,7 +220,6 @@ export function initBotPolling() {
       const total = cur.reduce((s: number, r: any) => s + (r.count || 0), 0);
       const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
       for (const r of cur) {
-        // eslint-disable-next-line security/detect-object-injection
         counts[Number(r._id)] = Number(r.count || 0);
       }
       const avg =
@@ -274,16 +273,13 @@ export function initBotPolling() {
     if (process.env.NODE_ENV !== 'production') {
       try {
         const d: any = data || {};
-        console.log(
-          '[bot:/metrics]',
-          {
-            week,
-            range: d?.weekRange?.label,
-            df: d?.df?.count ?? 0,
-            cfrDen: d?.cfr?.denominator ?? 0,
-            ltSamples: d?.leadTime?.samples ?? 0,
-          },
-        );
+        console.log('[bot:/metrics]', {
+          week,
+          range: d?.weekRange?.label,
+          df: d?.df?.count ?? 0,
+          cfrDen: d?.cfr?.denominator ?? 0,
+          ltSamples: d?.leadTime?.samples ?? 0,
+        });
       } catch {}
     }
     await ctx.reply(fmtWeekly(data));
@@ -294,10 +290,7 @@ export function initBotPolling() {
     if (!p) return ctx.reply(uiText.mustStartFirst);
     const thisWeek = getCurrentIsoWeekTz(config.timezone);
     const prevWeek = getPreviousWeekKey(thisWeek);
-    const [cur, prev] = await Promise.all([
-      fetchWeekly(String(p._id), thisWeek),
-      fetchWeekly(String(p._id), prevWeek),
-    ]);
+    const [cur, prev] = await Promise.all([fetchWeekly(String(p._id), thisWeek), fetchWeekly(String(p._id), prevWeek)]);
     const r1 = getIsoWeekDateRangeTz(thisWeek)?.label || '';
     const r2 = getIsoWeekDateRangeTz(prevWeek)?.label || '';
 

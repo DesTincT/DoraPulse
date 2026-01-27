@@ -127,15 +127,18 @@ export default async function githubAppWebhook(app: FastifyInstance) {
         const repos: string[] = Array.isArray(reposRaw)
           ? reposRaw.map((r: any) => String(r?.full_name || '')).filter(Boolean)
           : [];
-        await ProjectModel.updateOne({ _id: project._id }, {
-          $set: {
-            'settings.github.installationId': installationId,
-            'settings.github.accountLogin': accountLogin,
-            'settings.github.accountType': accountType,
-            'settings.github.repos': repos,
-            'settings.github.updatedAt': new Date(),
+        await ProjectModel.updateOne(
+          { _id: project._id },
+          {
+            $set: {
+              'settings.github.installationId': installationId,
+              'settings.github.accountLogin': accountLogin,
+              'settings.github.accountType': accountType,
+              'settings.github.repos': repos,
+              'settings.github.updatedAt': new Date(),
+            },
           },
-        });
+        );
       }
 
       // resolve repoId if repository is present

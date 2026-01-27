@@ -176,7 +176,7 @@ export default async function githubWebhook(app: FastifyInstance) {
           // Per project configuration: count merges only into the configured production branch.
           // Still upsert the PR domain model above for debugging/selftest.
           if (!prodBranch || baseRef === prodBranch) {
-          const ev: any = {
+            const ev: any = {
               ts: new Date(pr.merged_at || now),
               // normalize legacy type to canonical at save-time
               type: 'pr_merged',
