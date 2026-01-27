@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { getIsoWeekDateRange, getIsoWeekMinus } from './week.js';
+import test from 'node:test';
 import { formatInTimeZone } from 'date-fns-tz';
+import { getIsoWeekDateRange, getIsoWeekMinus, getIsoWeekKey, getLatestCompleteWeekKey, getWeekRange } from './week.js';
 
 const TZ = 'Europe/Berlin';
 
@@ -32,10 +33,6 @@ test('getIsoWeekMinus across year boundary', () => {
   const prev = getIsoWeekMinus('2026-W01', 1);
   assert.equal(prev, '2025-W52');
 });
-
-import assert from 'node:assert/strict';
-import test from 'node:test';
-import { getIsoWeekKey, getLatestCompleteWeekKey, getWeekRange } from './week.js';
 
 test('getIsoWeekKey: ISO week-year boundary 2025-12-29..2026-01-04 => 2026-W01', () => {
   const dates = [

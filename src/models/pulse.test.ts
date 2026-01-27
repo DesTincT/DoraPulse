@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { PulseResponseModel } from './PulseResponse.js';
@@ -39,4 +40,3 @@ test('PulseResponse upsert: overwrite rating for same (projectId, week, userId)'
     await mongod.stop();
   }
 });
-
