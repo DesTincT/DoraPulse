@@ -35,4 +35,3 @@ export function InstallRow({ installed, url, tg }) {
     />
   );
 }
-

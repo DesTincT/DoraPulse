@@ -7,4 +7,3 @@ export function StatusDot({ ok, label }) {
     </div>
   );
 }
-

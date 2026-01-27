@@ -2,6 +2,7 @@
 dist/
 build/
 coverage/
+webapp/dist
 .env
 .env.local
 .DS_Store
@@ -15,8 +16,6 @@ yarn-error.log*
 .cursor/
 
 prod.env
-
-deploy.ps1
 
 *.zip
 

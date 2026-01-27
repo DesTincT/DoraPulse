@@ -35,4 +35,3 @@ export function EnvSelector({ envs, setEnvs, onReload, onSave, saving }) {
     </div>
   );
 }
-

@@ -44,4 +44,3 @@ export function VerifyRow({ running, result, onRun, disabled }) {
     </ListRow>
   );
 }
-

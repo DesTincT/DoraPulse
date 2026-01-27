@@ -9,4 +9,3 @@ export function SelfTestCard({ loading, data, onRun }) {
     </div>
   );
 }
-

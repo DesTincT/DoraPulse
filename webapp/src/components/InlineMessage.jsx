@@ -7,4 +7,3 @@ export function InlineMessage({ type = 'info', children }) {
         : 'text-sm text-base-content/70';
   return <div className={cls}>{children}</div>;
 }
-

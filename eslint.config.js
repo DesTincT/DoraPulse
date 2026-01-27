@@ -12,13 +12,47 @@ const tsFiles = ['**/*.ts', '**/*.tsx'];
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'eslint.config.js', 'webapp/**'],
+    // Keep API code strict; skip built web UI sources.
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'eslint.config.js',
+      'scripts/**',
+      '**/scripts/**',
+      'webapp/**',
+      '**/webapp/**',
+    ],
   },
   js.configs.recommended,
   n.configs['flat/recommended'],
   promise.configs['flat/recommended'],
   security.configs.recommended,
   prettier,
+  // Allow CommonJS config files (module/require) without weakening TS linting.
+  {
+    files: ['**/*.cjs', 'tailwind.webapp.config.cjs'],
+    languageOptions: {
+      globals: {
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        process: 'readonly',
+      },
+    },
+    rules: {
+      // Tooling config may legally import devDependencies.
+      'n/no-unpublished-require': 'off',
+    },
+  },
+  {
+    files: ['vite.webapp.config.ts'],
+    rules: {
+      // Tooling config may legally import devDependencies.
+      'n/no-unpublished-import': 'off',
+    },
+  },
   // IMPORTANT: scope type-aware TypeScript rules to TS files only.
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,

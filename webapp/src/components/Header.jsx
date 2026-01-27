@@ -21,4 +21,3 @@ export function Header({ onRefresh, disabled, telegramDetected, initDataLen }) {
     </div>
   );
 }
-
