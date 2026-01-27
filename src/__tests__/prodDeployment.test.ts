@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { matchProdEnvironment, isProdDeployment } from './prodDeployment.js';
+import { matchProdEnvironment, isProdDeployment } from '../services/prodDeployment.js';
 
 test('matchProdEnvironment: defaults are prod|production (case-insensitive)', () => {
   const settings = {};

@@ -87,5 +87,3 @@ test('webhooks/github/app: delivery idempotency does not conflict on seenCount',
   assert.ok(delivery);
   assert.equal(delivery.seenCount, 2);
 });
-
-

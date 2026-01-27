@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { PulseResponseModel } from './PulseResponse.js';
-import { ProjectModel } from './Project.js';
+import { PulseResponseModel } from '../models/PulseResponse.js';
+import { ProjectModel } from '../models/Project.js';
 
 test('PulseResponse upsert: overwrite rating for same (projectId, week, userId)', async () => {
   const mongod = await MongoMemoryServer.create();
