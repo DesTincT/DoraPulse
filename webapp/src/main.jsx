@@ -26,9 +26,9 @@ function App() {
   const openInTelegram = !authed && (me.apiError === 'open_in_telegram' || envs.apiError === 'open_in_telegram');
 
   return (
-    <div className="min-h-screen bg-base-200 text-base-content">
+    <div className="tg-page">
       <div className="min-h-[100dvh] overflow-y-auto overscroll-none">
-        <div className="max-w-md mx-auto p-4 space-y-4">
+        <div className="tg-container space-y-4">
           <Header
             onRefresh={refreshAll}
             disabled={me.loading || envs.loading}
@@ -36,15 +36,9 @@ function App() {
             initDataLen={initDataLen}
           />
 
-          {/* TEMP: sanity check Tailwind + DaisyUI utilities in prod CSS */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="badge badge-primary">badge-primary</div>
-            <div className="badge badge-secondary">badge-secondary</div>
-          </div>
-
           <ListSection>
             {openInTelegram ? (
-              <div className="px-1 py-3">
+              <div className="px-4 py-3">
                 <InlineMessage type="error">Open this page from Telegram to continue.</InlineMessage>
               </div>
             ) : null}

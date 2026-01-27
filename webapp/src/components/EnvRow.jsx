@@ -18,7 +18,7 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved, dis
       subtitle="Comma-separated values used to count production deployments."
       right={
         <button
-          className="btn btn-primary btn-sm"
+          className="tg-btn-primary"
           onClick={async () => {
             // Save MUST use the current input value (envText state update is async).
             const ok = await onSave(local);
@@ -33,13 +33,13 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved, dis
     >
       <>
         <input
-          className="input input-bordered w-full"
+          className="tg-input"
           placeholder="production"
           value={local}
           disabled={!!disabled}
           onChange={(e) => setLocal(e.target.value)}
         />
-        <div className="text-xs text-base-content/60 mt-1">Example: production, Yandex Cloud</div>
+        <div className="mt-1 text-[12px] leading-4 tg-hint">Example: production, Yandex Cloud</div>
         {err}
         {footer}
       </>

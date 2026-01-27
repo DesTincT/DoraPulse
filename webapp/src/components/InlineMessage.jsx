@@ -1,9 +1,5 @@
 export function InlineMessage({ type = 'info', children }) {
   const cls =
-    type === 'success'
-      ? 'text-sm text-green-600'
-      : type === 'error'
-        ? 'text-sm text-red-600'
-        : 'text-sm text-base-content/70';
+    type === 'success' ? 'text-[13px] tg-success' : type === 'error' ? 'text-[13px] tg-error' : 'text-[13px] tg-hint';
   return <div className={cls}>{children}</div>;
 }
