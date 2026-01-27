@@ -18,7 +18,7 @@ function Checklist({ checklist }) {
 export function VerifyRow({ running, result, onRun, disabled }) {
   const button = (
     <button
-      className="btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50"
+      className="btn btn-primary btn-sm"
       onClick={onRun}
       disabled={running || !!disabled}
     >

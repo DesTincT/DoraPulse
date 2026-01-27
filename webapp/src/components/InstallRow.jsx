@@ -6,7 +6,7 @@ export function InstallRow({ installed, url, tg }) {
 
   const button = installed ? null : (
     <button
-      className="btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50"
+      className="btn btn-primary btn-sm"
       onClick={() => {
         if (!url) return;
         try {

@@ -18,7 +18,7 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved, dis
       subtitle="Comma-separated values used to count production deployments."
       right={
         <button
-          className="btn btn-sm rounded-full bg-[#2AABEE] hover:bg-[#229ED9] border-none text-white disabled:opacity-50"
+          className="btn btn-primary btn-sm"
           onClick={async () => {
             // Save MUST use the current input value (envText state update is async).
             const ok = await onSave(local);
