@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { formatInTimeZone } from 'date-fns-tz';
-import { getIsoWeekDateRange, getIsoWeekMinus, getIsoWeekKey, getLatestCompleteWeekKey, getWeekRange } from './week.js';
+import { getIsoWeekDateRange, getIsoWeekMinus, getIsoWeekKey, getLatestCompleteWeekKey, getWeekRange } from '../utils/week.js';
 
 const TZ = 'Europe/Berlin';
 

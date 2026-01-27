@@ -9,7 +9,7 @@
     "start": "node --env-file=.env --enable-source-maps dist/index.js",
     "start:dev": "tsx src/index.ts",
     "build": "npm run lint && npm run lint:fix && npm run format && tsc -p tsconfig.json",
-    "test": "node --import tsx --test --test-concurrency=1 \"src/**/*.test.ts\"",
+    "test": "node --import tsx --test --test-concurrency=1 \"src/__tests__/**/*.test.ts\"",
     "prepare": "husky",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
