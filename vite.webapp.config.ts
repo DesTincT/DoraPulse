@@ -10,7 +10,9 @@ const postcssPluginsConfig = postcssConfig?.plugins;
 const tailwindcss = require('tailwindcss');
 const autoprefixer = require('autoprefixer');
 
-const tailwindOptions = postcssPluginsConfig?.tailwindcss ?? { config: path.resolve(__dirname, 'tailwind.webapp.config.cjs') };
+const tailwindOptions = postcssPluginsConfig?.tailwindcss ?? {
+  config: path.resolve(__dirname, 'tailwind.webapp.config.cjs'),
+};
 const autoprefixerOptions = postcssPluginsConfig?.autoprefixer ?? {};
 
 export default defineConfig({
