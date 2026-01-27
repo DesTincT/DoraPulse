@@ -21,6 +21,6 @@ export default defineConfig({
     },
   },
   css: {
-    postcss: path.resolve(__dirname, 'postcss.webapp.config.js'),
+    postcss: path.resolve(__dirname, 'postcss.webapp.config.cjs'),
   },
 });
