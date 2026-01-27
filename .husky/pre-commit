@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/h"
+
+npm run lint:fix
+npm run format
+
+# Include any formatter/linter fixes in the commit.
+git add -u
+
