@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'https://esm.sh/react@18';
+import { useEffect, useState } from 'react';
 
 export function useFetch(fn, deps = []) {
   const [data, setData] = useState(null);

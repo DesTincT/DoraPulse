@@ -21,6 +21,7 @@ Dora Pulse brings DORA metrics to Telegram. It integrates with GitHub, computes 
 ---
 
 ## Table of Contents
+
 - [Features](#features)
 - [Metrics](#metrics)
 - [Screenshots](#screenshots)
@@ -37,6 +38,7 @@ Dora Pulse brings DORA metrics to Telegram. It integrates with GitHub, computes 
 ---
 
 ## Features
+
 - Telegram bot commands: `/help`, `/metrics`, `/digest`, `/pulse` (rating 1–5 with aggregation)
 - GitHub App integration to ingest delivery signals (PRs, deployments)
 - Mini App for initial setup (production environment rules, linking)
@@ -59,6 +61,7 @@ Weekly, ISO‑week aligned (Mon–Sun):
 All metrics are computed per ISO week (Mon–Sun) in your configured `TIMEZONE`.
 
 Notes:
+
 - Production environments are matched by rules (strings/regex) set in the Mini App.
 - p90 is omitted when the sample size is too low to be meaningful.
 
@@ -76,6 +79,7 @@ See: [assets/README.md](./assets/README.md)
 ---
 
 ## How it works
+
 1. Install/start the Telegram bot and create/select a project (`/start`).
 2. Install the GitHub App and select repositories to ingest events.
 3. In the Mini App, set your production environment names/rules.
@@ -86,6 +90,7 @@ See: [assets/README.md](./assets/README.md)
 ## Quickstart (local)
 
 Prerequisites:
+
 - Node.js 20+
 - Docker + Docker Compose (recommended) or local MongoDB
 
@@ -122,16 +127,19 @@ Prefer Docker Compose? Use your existing compose setup (or create one) to run AP
 ## Installation / Setup (production)
 
 Recommended: Docker Compose on a VM.
+
 - Provision a VM with Docker/Compose.
 - Set environment variables (see above) for the API container.
 - Expose the API over HTTPS (reverse proxy or cloud load balancer).
 - Configure Telegram bot token and GitHub App secrets as environment variables.
 
 CI/CD:
+
 - This repo contains a GitHub Actions workflow (`deploy.yml`) that builds the project and ships artifacts to a VM.
 - It restarts the `api` service via Docker Compose and performs a basic healthcheck.
 
 Deployment notes (optional):
+
 - The build produces a `dist/` bundle for the API. Ensure volumes or image builds mount/include `dist/`.
 - The Mini App (web) static is served by the API plugin routing; no separate SPA build is required in this repo.
 
@@ -147,6 +155,7 @@ In Telegram (in your project chat):
 - `/pulse` — prompts a 1..5 rating. The bot upserts your rating for the current week and prints aggregated results (n, average, counts per 1..5).
 
 Notes:
+
 - ISO week/year safe across New Year (week starts Monday).
 - If a week has no data, outputs are handled gracefully and remain compact.
 
@@ -161,6 +170,7 @@ Notes:
 ---
 
 ## Security & privacy
+
 - No source code ingestion. Dora Pulse only uses GitHub webhooks and stores delivery-related metadata required to compute metrics.
 - Do not treat this as a compliance solution; handle your own secrets management and network policies.
 
@@ -185,6 +195,7 @@ Notes:
 ## Contributing
 
 We welcome contributions!
+
 1. Fork the repo and create a feature branch.
 2. Make changes with tests where practical.
 3. Lint & test:
@@ -195,6 +206,7 @@ We welcome contributions!
 4. Open a Pull Request.
 
 ### Project AI standards
+
 - Please follow the project guidelines documented at `.cursor/rules/project-standards.mdc`.
 - Keep PRs small and focused; ensure CI passes (lint, build, tests).
 
@@ -215,9 +227,6 @@ Today the key metrics are:
 - **Change Failure Rate (CFR)**: computed from failed `deployment_status` events
 - **Lead Time for Changes**: time from commit to successful deployment to production.
 - **PR Cycle Time**: computation uses PR events: `pr_open` and `pr_merged`
-
-
-
 
 This package (`apps/api`) contains:
 

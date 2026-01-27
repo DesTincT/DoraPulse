@@ -41,7 +41,10 @@ function setIfNull(obj, path, value) {
 // --- Projects backfill ---
 (function backfillProjects() {
   const coll = db.getCollection('projects');
-  const cursor = coll.find({}, { projection: { settings: 1, github: 1, githubInstallationId: 1, githubAccountLogin: 1 } });
+  const cursor = coll.find(
+    {},
+    { projection: { settings: 1, github: 1, githubInstallationId: 1, githubAccountLogin: 1 } },
+  );
   let updated = 0;
   cursor.forEach((doc) => {
     const srcInstallation =
@@ -83,10 +86,7 @@ function setIfNull(obj, path, value) {
 // --- Events backfill ---
 (function backfillEvents() {
   const coll = db.getCollection('events');
-  const cursor = coll.find(
-    { prId: { $type: 'number' } },
-    { projection: { prId: 1, meta: 1 } },
-  );
+  const cursor = coll.find({ prId: { $type: 'number' } }, { projection: { prId: 1, meta: 1 } });
   let updated = 0;
   cursor.forEach((doc) => {
     const prId = doc.prId;
@@ -112,4 +112,3 @@ function setIfNull(obj, path, value) {
 //   'github.updatedAt': ''
 // }});
 // db.events.updateMany({ prId: { $exists: true } }, { $unset: { prId: '' }});
-

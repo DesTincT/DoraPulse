@@ -114,6 +114,5 @@ export function currentIsoWeek() {
 
 // Re-exports for convenience where importing from utils.ts is preferred
 export const getCurrentIsoWeekTz = (tz?: string) => getCurrentIsoWeek(tz ?? config.timezone);
-export const getIsoWeekDateRangeTz = (week: string, tz?: string) =>
-  getIsoWeekDateRange(week, tz ?? config.timezone);
+export const getIsoWeekDateRangeTz = (week: string, tz?: string) => getIsoWeekDateRange(week, tz ?? config.timezone);
 export const getIsoWeekMinusTz = (week: string, n: number) => getIsoWeekMinus(week, n);

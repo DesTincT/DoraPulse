@@ -1,5 +1,5 @@
-import React, { useState } from 'https://esm.sh/react@18';
-import { apiPost } from '/webapp/src/api/client.js';
+import { useState } from 'react';
+import { apiPost } from '../api/client.js';
 
 export function useSelfTest(initData) {
   const [running, setRunning] = useState(false);
