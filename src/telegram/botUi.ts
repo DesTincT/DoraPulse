@@ -9,9 +9,13 @@ function ensureTrailingSlash(url: string): string {
 }
 
 export function getMiniAppUrl(): string {
-  const base = process.env.MINIAPP_URL || `${config.publicAppUrl}/webapp/`;
-  // Always use /webapp/ (trailing slash) to avoid redirect chains in Telegram WebView.
-  return ensureTrailingSlash(base);
+  // Highest priority: explicit override
+  const raw = (process.env.MINIAPP_URL || '').trim();
+  if (raw) return ensureTrailingSlash(raw);
+
+  // Default: public app root (Vite build lives there)
+  // IMPORTANT: do NOT append /webapp/ anymore.
+  return ensureTrailingSlash(config.publicAppUrl);
 }
 
 export function quickActionsKeyboard() {
