@@ -17,11 +17,7 @@ function Checklist({ checklist }) {
 
 export function VerifyRow({ running, result, onRun, disabled }) {
   const button = (
-    <button
-      className="btn btn-primary btn-sm"
-      onClick={onRun}
-      disabled={running || !!disabled}
-    >
+    <button className="btn btn-primary btn-sm" onClick={onRun} disabled={running || !!disabled}>
       {running ? 'Verifying…' : 'Verify'}
     </button>
   );
