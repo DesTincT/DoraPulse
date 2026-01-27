@@ -77,26 +77,20 @@ export function getCurrentIsoWeek(tz: string): string {
  * - endDate: next Monday 00:00 (UTC) — exclusive
  * - label: "DD.MM–DD.MM" formatted in tz
  */
-export function getIsoWeekDateRange(
-  weekKey: string,
-  tz: string,
-): { startDate: Date; endDate: Date; label: string } {
+export function getIsoWeekDateRange(weekKey: string, tz: string): { startDate: Date; endDate: Date; label: string } {
   const [yStr, wStr] = weekKey.split('-W');
   const y = Number(yStr);
   const w = Number(wStr);
   if (!Number.isFinite(y) || !Number.isFinite(w)) throw new Error(`Invalid weekKey: ${weekKey}`);
 
-  // Use local parse with ISO week-year tokens to get a representative Monday date (in local zone),
-  // then compute end by adding 6 days for label purposes.
-  const mondayLocal = parse(`${y}-W${String(w).padStart(2, '0')}-1`, "RRRR-'W'II-i", new Date());
-  const sundayLocal = addDays(mondayLocal, 6);
-
   // For UTC boundaries we keep the canonical UTC Mon..Mon [from, toExclusive)
   const { from: startDate, toExclusive: endDate } = getWeekRangeExclusive(weekKey);
 
+  // Labels should reflect calendar dates in the target timezone.
+  // Using UTC boundaries directly can roll over to Monday in some TZs (e.g., Europe/Berlin, Jan).
+  // Derive the end label from startDate + 6 days to get Sunday in the target TZ reliably.
   const startLabel = formatInTimeZone(startDate, tz, 'dd.MM');
-  // Use one millisecond before endExclusive to get Sunday's calendar date
-  const endLabel = formatInTimeZone(new Date(endDate.getTime() - 1), tz, 'dd.MM');
+  const endLabel = formatInTimeZone(addDays(startDate, 6), tz, 'dd.MM');
   const label = `${startLabel}–${endLabel}`;
 
   return { startDate, endDate, label };

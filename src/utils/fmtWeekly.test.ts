@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import { fmtWeekly } from '../utils.js';
 
 test('fmtWeekly includes week and range label', () => {
@@ -14,4 +15,3 @@ test('fmtWeekly includes week and range label', () => {
   });
   assert.ok(text.startsWith('📅 2026-W01 (29.12–04.01)'));
 });
-
