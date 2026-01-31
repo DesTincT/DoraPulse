@@ -12,16 +12,12 @@ import { EnvRow } from './components/EnvRow.jsx';
 import { InlineMessage } from './components/InlineMessage.jsx';
 
 function App() {
-  const { tg, initData, detected, initDataLen } = useTelegram();
+  const { tg, initData } = useTelegram();
   const me = useMe(initData);
   const envs = useEnvs(initData);
   const self = useSelfTest(initData);
 
   const authed = !!me.ok;
-  const refreshAll = () => {
-    void me.reload();
-    void envs.load();
-  };
 
   const openInTelegram = !authed && (me.apiError === 'open_in_telegram' || envs.apiError === 'open_in_telegram');
 
@@ -29,12 +25,7 @@ function App() {
     <div className="tg-page">
       <div className="min-h-[100dvh] overflow-y-auto overscroll-none">
         <div className="tg-container space-y-4">
-          <Header
-            onRefresh={refreshAll}
-            disabled={me.loading || envs.loading}
-            telegramDetected={detected}
-            initDataLen={initDataLen}
-          />
+          <Header />
 
           <ListSection>
             {openInTelegram ? (
