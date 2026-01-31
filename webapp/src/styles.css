@@ -156,4 +156,12 @@
   .tg-success {
     color: var(--tg-success);
   }
+
+  .tg-pre {
+    @apply mt-2 rounded-lg border p-3 whitespace-pre overflow-auto;
+    border-color: var(--tg-divider);
+    background: var(--tg-bg);
+    max-height: 50vh;
+    -webkit-overflow-scrolling: touch;
+  }
 }

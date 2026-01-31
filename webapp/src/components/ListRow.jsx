@@ -1,6 +1,6 @@
 export function ListRow({ title, subtitle, right, children, last = false }) {
   const borderClass = last ? '' : 'tg-divider';
-  const childrenPad = last ? '' : 'tg-row-body';
+  const childrenPad = 'tg-row-body';
 
   return (
     <div className={borderClass}>

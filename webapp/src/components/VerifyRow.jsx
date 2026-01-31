@@ -30,7 +30,7 @@ export function VerifyRow({ running, result, onRun, disabled }) {
     body = (
       <details>
         <summary>View details</summary>
-        <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(result, null, 2)}</pre>
+        <pre className="tg-pre text-xs">{JSON.stringify(result, null, 2)}</pre>
       </details>
     );
   }
