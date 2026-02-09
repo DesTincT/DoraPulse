@@ -1,14 +1,23 @@
 import { ListRow } from './ListRow.jsx';
 import { StatusDot } from './StatusDot.jsx';
 
-export function InstallRow({ installed, url, tg }) {
-  const status = <StatusDot ok={!!installed} label={installed ? 'Installed' : 'Not installed'} />;
+export function InstallRow({ installed, url, tg, loading = false }) {
+  const statusLabel = loading ? (
+    <span className="tg-skeleton tg-skeleton-text" aria-hidden="true" />
+  ) : installed ? (
+    'Installed'
+  ) : (
+    'Not installed'
+  );
+  const status = <StatusDot ok={!!installed && !loading} label={statusLabel} />;
+  const buttonLabel = loading ? 'Loading…' : installed ? 'Installed' : 'Install';
+  const buttonDisabled = loading || installed || !url;
 
-  const button = installed ? null : (
+  const button = (
     <button
-      className="tg-btn-primary"
+      className="tg-btn-primary tg-btn-fixed"
       onClick={() => {
-        if (!url) return;
+        if (!url || installed || loading) return;
         try {
           if (tg?.openLink) tg.openLink(url);
           else window.open(url, '_blank');
@@ -16,9 +25,9 @@ export function InstallRow({ installed, url, tg }) {
           window.open(url, '_blank');
         }
       }}
-      disabled={!url}
+      disabled={buttonDisabled}
     >
-      Install
+      {buttonLabel}
     </button>
   );
 

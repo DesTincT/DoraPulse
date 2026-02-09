@@ -15,14 +15,16 @@ function Checklist({ checklist }) {
   );
 }
 
-export function VerifyRow({ running, result, onRun, disabled }) {
+export function VerifyRow({ running, result, onRun, disabled, loading = false }) {
   const button = (
-    <button className="tg-btn-primary" onClick={onRun} disabled={running || !!disabled}>
+    <button className="tg-btn-primary tg-btn-fixed" onClick={onRun} disabled={running || loading || !!disabled}>
       {running ? 'Verifying…' : 'Verify'}
     </button>
   );
   let body = null;
-  if (!result) {
+  if (loading && !result) {
+    body = <div className="tg-skeleton tg-skeleton-text" aria-hidden="true" />;
+  } else if (!result) {
     body = <InlineMessage type="info">No checks run yet.</InlineMessage>;
   } else if (result?.checklist && typeof result.checklist === 'object') {
     body = <Checklist checklist={result.checklist} />;

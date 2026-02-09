@@ -72,6 +72,19 @@ export function useTelegram() {
       }
     };
 
+    const applySafeArea = () => {
+      const root = document.documentElement;
+      const inset = tg?.safeAreaInset || tg?.contentSafeAreaInset;
+      const top = inset?.top ?? 0;
+      const bottom = inset?.bottom ?? 0;
+      const left = inset?.left ?? 0;
+      const right = inset?.right ?? 0;
+      root.style.setProperty('--tg-safe-top', `${top}px`);
+      root.style.setProperty('--tg-safe-bottom', `${bottom}px`);
+      root.style.setProperty('--tg-safe-left', `${left}px`);
+      root.style.setProperty('--tg-safe-right', `${right}px`);
+    };
+
     try {
       if (tg && typeof tg.ready === 'function') tg.ready();
       if (tg && typeof tg.expand === 'function') tg.expand();
@@ -80,16 +93,26 @@ export function useTelegram() {
     try {
       if (tg?.themeParams) applyTheme(tg.themeParams);
     } catch {}
+    try {
+      applySafeArea();
+    } catch {}
 
     const onThemeChanged = () => {
       try {
         applyTheme(tg?.themeParams);
       } catch {}
     };
+    const onViewportChanged = () => {
+      try {
+        applySafeArea();
+      } catch {}
+    };
 
     if (tg && typeof tg.onEvent === 'function') tg.onEvent('themeChanged', onThemeChanged);
+    if (tg && typeof tg.onEvent === 'function') tg.onEvent('viewportChanged', onViewportChanged);
     return () => {
       if (tg && typeof tg.offEvent === 'function') tg.offEvent('themeChanged', onThemeChanged);
+      if (tg && typeof tg.offEvent === 'function') tg.offEvent('viewportChanged', onViewportChanged);
     };
   }, [tg]);
 

@@ -11,6 +11,63 @@ import { computeProjectSelftest } from '../services/selftestService.js';
 
 export default async function webappRoutes(app: FastifyInstance) {
   // Telegram-authenticated API
+  app.get('/api/bootstrap', { preHandler: app.telegramAuth }, async (req, reply) => {
+    const project = req.project!;
+    const bypass = !!project.devBypass;
+    const noDb = String(process.env.DORA_DEV_NO_DB || '').toLowerCase() === 'true';
+
+    const baseInstallUrl = config.githubAppSlug
+      ? `https://github.com/apps/${config.githubAppSlug}/installations/new`
+      : bypass
+        ? 'https://example.com/install'
+        : null;
+
+    const state =
+      baseInstallUrl && project.projectId && project.chatId > 0
+        ? createGithubInstallState({ projectId: project.projectId, chatId: project.chatId })
+        : null;
+    const githubInstallUrl =
+      baseInstallUrl && state ? `${baseInstallUrl}?state=${encodeURIComponent(state)}` : baseInstallUrl;
+
+    const installationId = project.github.installationId;
+    const installed = project.github.installed;
+
+    if (noDb) {
+      const selected = project.settings?.prodEnvironments?.length ? project.settings.prodEnvironments : ['production'];
+      return reply.send({
+        ok: true,
+        projectId: project.projectId,
+        installed,
+        github: { installed, installationId },
+        githubInstallUrl,
+        seenEnvs: ['production'],
+        selectedEnvs: selected,
+        prodEnvironmentsText: selected.join(', '),
+        serverNow: new Date().toISOString(),
+      });
+    }
+
+    const seen = await EventModel.distinct('meta.deploymentEnvironment', { projectId: project.projectId });
+    const selected = project.settings.prodEnvironments.length ? project.settings.prodEnvironments : ['production'];
+    const filtered = (seen || []).filter(Boolean);
+
+    const seenEnvs =
+      bypass && filtered.length === 0 && selected.length === 0 ? ['Yandex Cloud', 'production'] : filtered;
+    const selectedEnvs = bypass && filtered.length === 0 && selected.length === 0 ? ['Yandex Cloud'] : selected;
+
+    return reply.send({
+      ok: true,
+      projectId: project.projectId,
+      installed,
+      github: { installed, installationId },
+      githubInstallUrl,
+      seenEnvs,
+      selectedEnvs,
+      prodEnvironmentsText: selectedEnvs.join(', '),
+      serverNow: new Date().toISOString(),
+    });
+  });
+
   app.get('/api/me', { preHandler: app.telegramAuth }, async (req, reply) => {
     const project = req.project!;
     const bypass = !!project.devBypass;

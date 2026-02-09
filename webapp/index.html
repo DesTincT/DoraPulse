@@ -5,20 +5,257 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dora Pulse</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      (function () {
+        try {
+          var tg = window.Telegram && window.Telegram.WebApp;
+          var p = tg && tg.themeParams;
+          if (!p) return;
+          var root = document.documentElement;
+          var pick = function (k) {
+            var v = p[k];
+            return typeof v === 'string' && v.trim() ? v.trim() : null;
+          };
+          var set = function (k, v) {
+            if (v) root.style.setProperty(k, v);
+          };
+          set('--tg-bg', pick('bg_color'));
+          set('--tg-text', pick('text_color'));
+          set('--tg-hint', pick('hint_color'));
+          set('--tg-link', pick('link_color'));
+          set('--tg-button', pick('button_color'));
+          set('--tg-button-text', pick('button_text_color'));
+          set('--tg-secondary-bg', pick('secondary_bg_color'));
+          var inset = tg.safeAreaInset || tg.contentSafeAreaInset;
+          if (inset) {
+            set('--tg-safe-top', inset.top ? inset.top + 'px' : '0px');
+            set('--tg-safe-bottom', inset.bottom ? inset.bottom + 'px' : '0px');
+            set('--tg-safe-left', inset.left ? inset.left + 'px' : '0px');
+            set('--tg-safe-right', inset.right ? inset.right + 'px' : '0px');
+          }
+          var text = pick('text_color') || '#111827';
+          if (text[0] === '#' && (text.length === 4 || text.length === 7)) {
+            var hex = text.length === 4 ? text.replace(/./g, '$&$&') : text;
+            var num = parseInt(hex.slice(1), 16);
+            if (!Number.isNaN(num)) {
+              var r = (num >> 16) & 255;
+              var g = (num >> 8) & 255;
+              var b = num & 255;
+              root.style.setProperty('--tg-divider', 'rgba(' + r + ',' + g + ',' + b + ',0.12)');
+            }
+          }
+        } catch {}
+      })();
+    </script>
     <style>
       /* Avoid always-on body scrollbars in Telegram WebView / small viewports */
       html,
       body,
       #app {
         height: 100%;
+        min-height: 100dvh;
+        margin: 0;
+        padding: 0;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
       }
       body {
         overflow: hidden;
       }
+
+      :root {
+        --tg-bg: #ffffff;
+        --tg-text: #111827;
+        --tg-hint: #6b7280;
+        --tg-link: #0a84ff;
+        --tg-button: #0a84ff;
+        --tg-button-text: #ffffff;
+        --tg-secondary-bg: #f3f4f6;
+        --tg-divider: rgba(17, 24, 39, 0.12);
+        --tg-font-family:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji',
+          'Segoe UI Emoji';
+        --tg-font-size-base: 16px;
+        --tg-line-height-base: 20px;
+        --tg-safe-top: 0px;
+        --tg-safe-bottom: 0px;
+        --tg-safe-left: 0px;
+        --tg-safe-right: 0px;
+      }
+
+      html {
+        font-family: var(--tg-font-family);
+        font-size: var(--tg-font-size-base);
+        line-height: var(--tg-line-height-base);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      .tg-container {
+        max-width: 28rem;
+        margin: 0 auto;
+        padding-top: calc(16px + var(--tg-safe-top, 0px));
+        padding-bottom: calc(16px + var(--tg-safe-bottom, 0px));
+        padding-left: calc(16px + var(--tg-safe-left, 0px));
+        padding-right: calc(16px + var(--tg-safe-right, 0px));
+        background: var(--tg-bg);
+        color: var(--tg-text);
+      }
+
+      .app-shell {
+        display: block;
+      }
+
+      .app-react {
+        display: block;
+      }
+
+      html.hydrated .app-shell {
+        display: none;
+      }
+
+      .tg-header {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .tg-title {
+        font-size: 17px;
+        font-weight: 600;
+        line-height: 24px;
+      }
+
+      .tg-subtitle {
+        margin-top: 2px;
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 20px;
+        color: var(--tg-hint);
+      }
+
+      .tg-section {
+        background: var(--tg-secondary-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 16px;
+      }
+
+      .tg-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+      }
+
+      .tg-row-title {
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 20px;
+      }
+
+      .tg-row-subtitle {
+        margin-top: 2px;
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 20px;
+        color: var(--tg-hint);
+      }
+
+      .tg-hint,
+      .tg-error {
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      .tg-hint {
+        color: var(--tg-hint);
+      }
+
+      .tg-row-body {
+        padding: 0 16px 12px;
+      }
+
+      .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 16px;
+      }
+
+      .tg-divider {
+        border-top: 1px solid var(--tg-divider);
+      }
+
+      .tg-skeleton {
+        display: inline-block;
+        background: var(--tg-divider);
+        border-radius: 10px;
+      }
+
+      .tg-skeleton-pill {
+        width: 96px;
+        height: 32px;
+      }
+
+      .tg-skeleton-text {
+        width: 180px;
+        height: 12px;
+      }
+
+      .tg-skeleton-input {
+        width: 100%;
+        height: 44px;
+        border-radius: 12px;
+        background: var(--tg-secondary-bg);
+        border: 1px solid var(--tg-divider);
+      }
     </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div id="app-shell" class="app-shell">
+        <div class="tg-container space-y-4" data-ui="shell">
+          <div class="tg-header">
+            <div>
+              <div class="tg-title">Dora Pulse Setup</div>
+              <div class="tg-subtitle">Connect GitHub, verify events, set production environments</div>
+            </div>
+          </div>
+          <div class="tg-section">
+            <div class="tg-row">
+              <div>
+                <div class="tg-row-title">Install GitHub App</div>
+                <div class="tg-row-subtitle">Choose repositories and grant access.</div>
+              </div>
+              <div class="tg-skeleton tg-skeleton-pill"></div>
+            </div>
+            <div class="tg-divider"></div>
+            <div class="tg-row">
+              <div>
+                <div class="tg-row-title">Verify</div>
+                <div class="tg-row-subtitle">Run a quick self-test for events and metrics.</div>
+              </div>
+              <div class="tg-skeleton tg-skeleton-pill"></div>
+            </div>
+            <div class="tg-divider"></div>
+            <div class="tg-row">
+              <div>
+                <div class="tg-row-title">Production environments</div>
+                <div class="tg-row-subtitle">Comma-separated values used to count production deployments.</div>
+              </div>
+              <div class="tg-skeleton tg-skeleton-pill"></div>
+            </div>
+            <div class="tg-row-body">
+              <div class="tg-skeleton-input"></div>
+              <div class="tg-skeleton tg-skeleton-text" style="margin-top: 8px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="app-react" class="app-react"></div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

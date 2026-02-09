@@ -2,9 +2,19 @@ import { useEffect, useState } from 'react';
 import { ListRow } from './ListRow.jsx';
 import { InlineMessage } from './InlineMessage.jsx';
 
-export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved, disabled, errorMessage }) {
+export function EnvRow({
+  envText,
+  setEnvText,
+  onSave,
+  saving,
+  recentlySaved,
+  disabled,
+  errorMessage,
+  loading = false,
+}) {
   const [local, setLocal] = useState(envText || '');
   useEffect(() => setLocal(envText || ''), [envText]);
+  const showSkeleton = loading && !envText;
 
   const footer = recentlySaved ? <InlineMessage type="success">Saved</InlineMessage> : null;
   const err =
@@ -18,13 +28,14 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved, dis
       subtitle="Comma-separated values used to count production deployments."
       right={
         <button
-          className="tg-btn-primary"
+          className="tg-btn-primary tg-btn-fixed"
           onClick={async () => {
             // Save MUST use the current input value (envText state update is async).
-            const ok = await onSave(local);
+            const result = await onSave(local);
+            const ok = typeof result === 'boolean' ? result : !!result?.ok;
             if (ok) setEnvText(local);
           }}
-          disabled={saving || !!disabled}
+          disabled={saving || loading || !!disabled}
         >
           {saving ? 'Saving…' : 'Save'}
         </button>
@@ -34,12 +45,18 @@ export function EnvRow({ envText, setEnvText, onSave, saving, recentlySaved, dis
       <>
         <input
           className="tg-input"
-          placeholder="production"
+          placeholder={loading ? 'Loading…' : 'production'}
           value={local}
-          disabled={!!disabled}
+          disabled={loading || !!disabled}
           onChange={(e) => setLocal(e.target.value)}
         />
-        <div className="mt-1 text-[12px] leading-4 tg-hint">Example: production, Yandex Cloud</div>
+        {showSkeleton ? (
+          <div className="mt-2">
+            <div className="tg-skeleton tg-skeleton-text" aria-hidden="true" />
+          </div>
+        ) : (
+          <div className="mt-1 text-[12px] leading-4 tg-hint">Example: production, Yandex Cloud</div>
+        )}
         {err}
         {footer}
       </>

@@ -304,6 +304,21 @@ Notes:
 - In DB-less dev mode (`DORA_DEV_NO_DB=true`), the server does not connect to MongoDB; non-essential routes return 503.
 - In dev bypass mode (`DORA_DEV_BYPASS_TELEGRAM_AUTH=true` and `NODE_ENV!=production`), `/api/*` routes accept requests without Telegram headers.
 
+## Mini App performance & native UX
+
+The Mini App uses an **Instant HTML App Shell** (not SSR) and a single **bootstrap** request for the first screen.
+
+- **App Shell (no SSR)**: `webapp/index.html` contains a static skeleton + critical CSS + a micro-script that applies Telegram `themeParams` before React mounts.
+- **Bootstrap**: the UI reads cached bootstrap from `localStorage` (TTL 30–60 min) and updates from `GET /api/bootstrap` in the background.
+- **Perf marks (dev-only)**: `app_start`, `first_shell`, `bootstrap_cache_hit`, `bootstrap_loaded`, `interactive` are logged in dev console for quick checks.
+- **Server caching**: templates for static caching are in `docs/nginx-webapp.conf` and `docs/caddy-webapp.Caddyfile`.
+
+Targets:
+
+- First visual shell in < 100–200 ms.
+- One request for the first screen (`/api/bootstrap`).
+- Instant repeat opens (shell + cached bootstrap).
+
 ## GitHub App install flow (Mini App “Install” status)
 
 If you configure a GitHub App for Dora Pulse, the Mini App shows whether it’s installed for the current Telegram project.

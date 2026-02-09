@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '../api/client.js';
 
-export function useEnvs(initData) {
-  const [envs, setEnvs] = useState({ seenEnvs: [], selected: [] });
-  const [envText, setEnvText] = useState('');
+export function useEnvs(initData, opts = {}) {
+  const autoLoad = opts.autoLoad !== false;
+  const initial = opts.initial || null;
+  const [envs, setEnvs] = useState(() => ({
+    seenEnvs: Array.isArray(initial?.seenEnvs) ? initial.seenEnvs : [],
+    selected: Array.isArray(initial?.selectedEnvs) ? initial.selectedEnvs : [],
+  }));
+  const [envText, setEnvText] = useState(() => {
+    const selected = Array.isArray(initial?.selectedEnvs) ? initial.selectedEnvs : [];
+    return selected.length ? selected.join(', ') : '';
+  });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -44,25 +52,34 @@ export function useEnvs(initData) {
       const dedup = Array.from(new Map(parts.map((p) => [p.toLowerCase(), p])).values());
       if (!dedup.length) {
         setApiError('Please enter at least one environment (comma-separated).');
-        return false;
+        return { ok: false };
       }
       await apiPost('/api/envs', { selected: dedup }, initData);
       setEnvs((prev) => ({ ...prev, selected: dedup }));
       setEnvText(dedup.join(', '));
       setSavedAt(Date.now());
-      return true;
+      return { ok: true, selected: dedup };
     } catch (e) {
       setError(e);
-      return false;
+      return { ok: false };
     } finally {
       setSaving(false);
     }
   }
 
   useEffect(() => {
+    const nextSelected = Array.isArray(initial?.selectedEnvs) ? initial.selectedEnvs : [];
+    const nextSeen = Array.isArray(initial?.seenEnvs) ? initial.seenEnvs : [];
+    setEnvs({ seenEnvs: nextSeen, selected: nextSelected });
+    setEnvText(nextSelected.length ? nextSelected.join(', ') : '');
+  }, [initial?.selectedEnvs, initial?.seenEnvs]);
+
+  useEffect(() => {
+    if (!autoLoad) return;
+    if (!initData) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initData]);
+  }, [autoLoad, initData]);
 
   const recentlySaved = useMemo(() => {
     if (!savedAt) return false;

@@ -16,6 +16,15 @@
     --tg-divider: rgba(17, 24, 39, 0.12);
     --tg-danger: #ef4444;
     --tg-success: #22c55e;
+    --tg-font-family:
+      ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji',
+      'Segoe UI Emoji';
+    --tg-font-size-base: 16px;
+    --tg-line-height-base: 20px;
+    --tg-safe-top: 0px;
+    --tg-safe-bottom: 0px;
+    --tg-safe-left: 0px;
+    --tg-safe-right: 0px;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -39,6 +48,24 @@
   #app {
     background: var(--tg-bg);
     color: var(--tg-text);
+    height: 100%;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--tg-font-family);
+    font-size: var(--tg-font-size-base);
+    line-height: var(--tg-line-height-base);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   body {
@@ -55,6 +82,10 @@
 
   .tg-container {
     @apply mx-auto w-full max-w-md px-4 py-4;
+    padding-top: calc(1rem + var(--tg-safe-top, 0px));
+    padding-bottom: calc(1rem + var(--tg-safe-bottom, 0px));
+    padding-left: calc(1rem + var(--tg-safe-left, 0px));
+    padding-right: calc(1rem + var(--tg-safe-right, 0px));
   }
 
   .tg-header {
@@ -63,10 +94,12 @@
 
   .tg-title {
     @apply text-[17px] font-semibold leading-6;
+    font-weight: 600;
   }
 
   .tg-subtitle {
     @apply mt-0.5 text-[13px] leading-5;
+    font-weight: 400;
     color: var(--tg-hint);
   }
 
@@ -88,10 +121,12 @@
 
   .tg-row-title {
     @apply text-[15px] font-medium leading-5;
+    font-weight: 500;
   }
 
   .tg-row-subtitle {
     @apply mt-0.5 text-[13px] leading-5;
+    font-weight: 400;
     color: var(--tg-hint);
   }
 
@@ -118,6 +153,10 @@
     @apply tg-btn;
     background: var(--tg-button);
     color: var(--tg-button-text);
+  }
+
+  .tg-btn-fixed {
+    min-width: 96px;
   }
 
   .tg-btn-secondary {
@@ -147,10 +186,12 @@
 
   .tg-hint {
     color: var(--tg-hint);
+    line-height: 16px;
   }
 
   .tg-error {
     color: var(--tg-danger);
+    line-height: 16px;
   }
 
   .tg-success {
@@ -163,5 +204,22 @@
     background: var(--tg-bg);
     max-height: 50vh;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .tg-skeleton {
+    background: var(--tg-divider);
+    border-radius: 10px;
+  }
+
+  .tg-skeleton-text {
+    @apply inline-block;
+    height: 12px;
+    width: 180px;
+  }
+
+  .tg-skeleton-pill {
+    @apply inline-block;
+    height: 32px;
+    width: 96px;
   }
 }
