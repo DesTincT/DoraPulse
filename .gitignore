@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 dist/
 build/
 coverage/
@@ -14,6 +14,10 @@ yarn-error.log*
 .next/
 .vscode/
 .cursor/
+**/.cursor/
+.cursor-*
+.cursorrules
+.cursorignore
 
 prod.env
 
