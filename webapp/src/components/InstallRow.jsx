@@ -43,7 +43,5 @@ export function InstallRow({ installed, url, tg, loading = false }) {
       break;
   }
 
-  return (
-    <ListRow title="Install GitHub App" subtitle="Choose repositories and grant access." right={right} />
-  );
+  return <ListRow title="Install GitHub App" subtitle="Choose repositories and grant access." right={right} />;
 }
