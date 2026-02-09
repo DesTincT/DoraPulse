@@ -312,6 +312,7 @@ The Mini App uses an **Instant HTML App Shell** (not SSR) and a single **bootstr
 - **Bootstrap**: the UI reads cached bootstrap from `localStorage` (TTL 30–60 min) and updates from `GET /api/bootstrap` in the background.
 - **Perf marks (dev-only)**: `app_start`, `first_shell`, `bootstrap_cache_hit`, `bootstrap_loaded`, `interactive` are logged in dev console for quick checks.
 - **Server caching**: templates for static caching are in `docs/nginx-webapp.conf` and `docs/caddy-webapp.Caddyfile`.
+- **Settings row pattern**: the right side is always a single element (action button OR status pill), never both.
 
 Targets:
 
