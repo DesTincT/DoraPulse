@@ -5,7 +5,6 @@ import { useTelegram } from './hooks/useTelegram.js';
 import { useBootstrap } from './hooks/useBootstrap.js';
 import { useEnvs } from './hooks/useEnvs.js';
 import { useSelfTest } from './hooks/useSelfTest.js';
-import { Header } from './components/Header.jsx';
 import { ListSection } from './components/ListSection.jsx';
 import { InstallRow } from './components/InstallRow.jsx';
 import { VerifyRow } from './components/VerifyRow.jsx';
@@ -65,7 +64,7 @@ function App() {
     const main = tg.MainButton;
     const canInstall = !!bootstrap.data?.githubInstallUrl;
     const installed = !!bootstrap.data?.installed;
-    const visible = !bootstrapLoading && !openInTelegram && (canInstall || installed);
+    const visible = !bootstrapLoading && !openInTelegram && !installed && canInstall;
 
     const handleClick = () => {
       if (!installed && canInstall) {
@@ -79,23 +78,14 @@ function App() {
         }
         return;
       }
-      if (installed) {
-        void runSelf();
-      }
     };
 
     try {
       if (!visible) {
         if (typeof main.hide === 'function') main.hide();
       } else {
-        if (!installed && canInstall) {
-          if (typeof main.setText === 'function') main.setText('Install GitHub App');
-          if (typeof main.enable === 'function') main.enable();
-        } else {
-          if (typeof main.setText === 'function') main.setText(selfRunning ? 'Verifying…' : 'Verify');
-          if (selfRunning && typeof main.disable === 'function') main.disable();
-          if (!selfRunning && typeof main.enable === 'function') main.enable();
-        }
+        if (typeof main.setText === 'function') main.setText('Install GitHub App');
+        if (typeof main.enable === 'function') main.enable();
         if (typeof main.show === 'function') main.show();
       }
       if (typeof main.onClick === 'function') main.onClick(handleClick);
@@ -106,7 +96,7 @@ function App() {
         if (typeof main.offClick === 'function') main.offClick(handleClick);
       } catch {}
     };
-  }, [bootstrap.data, bootstrapLoading, openInTelegram, runSelf, selfRunning, tg]);
+  }, [bootstrap.data, bootstrapLoading, openInTelegram, tg]);
 
   useEffect(() => {
     if (selfError) hapticError();
@@ -174,8 +164,6 @@ function App() {
     <div className="tg-page">
       <div className="min-h-[100dvh] overflow-y-auto overscroll-none">
         <div className="tg-container space-y-4" data-ui="react">
-          <Header />
-
           <ListSection>
             {openInTelegram ? (
               <div className="px-4 py-3">

@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import { Telegram } from 'telegraf';
 import { ProjectModel } from '../models/Project.js';
 import { getWeekly } from '../services/metricsService.js';
-import { fmtWeekly, getCurrentIsoWeekTz, getIsoWeekDateRangeTz } from '../utils.js';
+import { fmtWeekly, getCurrentIsoWeekTz, getIsoWeekDateRangeTz, hasAnyData } from '../utils.js';
 import { getPreviousWeekKey } from '../utils/week.js';
 import { config } from '../config.js';
 
@@ -17,6 +17,16 @@ function getTelegram(): Telegram | null {
     return null;
   }
   return new Telegram(BOT_TOKEN);
+}
+
+type WeeklyDigestMode = 'regular' | 'empty';
+
+function resolveWeeklyDigestMode(cur: any): WeeklyDigestMode {
+  return hasAnyData(cur) ? 'regular' : 'empty';
+}
+
+function shouldSendWeeklyDigest(_mode: WeeklyDigestMode): boolean {
+  return true;
 }
 
 // ---------- КРОНЫ ----------
@@ -63,21 +73,32 @@ cron.schedule(
           const dfPrev = Number(prev?.df?.count ?? 0);
           const cfrNow = typeof cur?.cfr?.value === 'number' ? cur.cfr.value : 0;
           const cfrPrev = typeof prev?.cfr?.value === 'number' ? prev.cfr.value : 0;
-          const digest = [
-            `📅 ${targetWeek} (${r1}) vs ${compareWeek} (${r2})`,
-            `🚀 DF: ${dfNow} (${delta(dfNow, dfPrev)})`,
-            `🔁 CFR: ${fmtPct(cfrNow)} (${deltaPct(cfrNow, cfrPrev)})`,
-          ].join('\n');
+          const mode = resolveWeeklyDigestMode(cur);
+          const digest =
+            mode === 'regular'
+              ? [
+                  `📅 ${targetWeek} (${r1}) vs ${compareWeek} (${r2})`,
+                  `🚀 DF: ${dfNow} (${delta(dfNow, dfPrev)})`,
+                  `🔁 CFR: ${fmtPct(cfrNow)} (${deltaPct(cfrNow, cfrPrev)})`,
+                ].join('\n')
+              : [
+                  `📅 ${targetWeek} (${r1})`,
+                  'За эту неделю пока нет данных для DORA-метрик.',
+                  'Нет зафиксированных production deployment events / merged PRs / incidents.',
+                  'Проверьте webhook-и, Verify и production environments.',
+                ].join('\n');
 
-          const text = [
-            `📊 DORA Pulse — недельный дайджест`,
-            weeklyText,
-            '',
-            digest,
-            '',
-            `Проект: ${p.name ?? p._id}`,
-          ].join('\n');
+          const text =
+            mode === 'regular'
+              ? [`📊 DORA Pulse — недельный дайджест`, weeklyText, '', digest, '', `Проект: ${p.name ?? p._id}`].join(
+                  '\n',
+                )
+              : [`📊 DORA Pulse — недельный дайджест`, digest, '', `Проект: ${p.name ?? p._id}`].join('\n');
 
+          if (!shouldSendWeeklyDigest(mode)) {
+            console.info('[cron/digest] skipped by policy', { projectId: String(p._id), mode, targetWeek });
+            continue;
+          }
           await tg.sendMessage(p.chatId as any, text, { parse_mode: 'Markdown' });
         } catch (e) {
           console.warn('[cron/digest] send failed for project', p._id, e);
