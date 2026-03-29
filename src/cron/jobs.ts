@@ -99,7 +99,7 @@ cron.schedule(
             console.info('[cron/digest] skipped by policy', { projectId: String(p._id), mode, targetWeek });
             continue;
           }
-          await tg.sendMessage(p.chatId as any, text, { parse_mode: 'Markdown' });
+          await tg.sendMessage(p.chatId as any, text);
         } catch (e) {
           console.warn('[cron/digest] send failed for project', p._id, e);
         }
